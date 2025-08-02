@@ -3,11 +3,7 @@ workflows:
   - subclass: WDL 
     primaryDescriptorPath: /workflow/MTtoVCF.wdl
     name: MTtoVCF
-  - subclass: WDL 
-    primaryDescriptorPath: /workflow/computeGeneticPCs.wdl
-    name: computeGeneticPCs
-  - subclass: WDL 
-    primaryDescriptorPath: /workflow/    
-    name: computeGeneticPCs
-
-
+    #- subclass: WDL 
+    #primaryDescriptorPath: /workflow/computeGeneticPCs.wdl
+    #name: computeGeneticPCs
+  
