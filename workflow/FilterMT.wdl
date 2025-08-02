@@ -1,31 +1,35 @@
 version 1.0
 
 
-workflow MTtoVCF {
+workflow FilterMT {
     input {
         String UriMatrixTable
-        String OutputBucket 
+        File SampleList
+        Int AlleleCountThreshold
+        String OutputMTPath
         String OutputPrefix
     }
-
-    call WriteVCF {
-        input: 
-            PathMT = UriMatrixTable,
-            OutputBucket = OutputBucket
+    
+    call FilterMT {
+        input:
+            PathMT = UriMatrixTable, 
+            SampleList = SampleList,
+            AlleleCountThreshold = AlleleCountThreshold,
+            OutputMTPath = OutputMTPath,
             OutputPrefix = OutputPrefix
-            
     }
-}
 
-    task WriteVCF {
-        input {
-            String PathMT 
-            String OutputBucket 
-            String OutputPrefix
-        }  
+
+task FilterMT {
+    input {
+        String UriMatrixTable
+        File SampleList
+        Int AlleleCountThreshold
+        String OutputMTPath
+        String OutputPrefix
+
+    }
     command <<<
-        set -e
-
         export SPARK_LOCAL_DIRS=/cromwell_root
 
         echo "Checking disk mounts and usage:"
@@ -35,15 +39,17 @@ workflow MTtoVCF {
         echo "Checking /cromwell_root directory:"
         ls -lah /cromwell_root
 
-        curl -O https://raw.githubusercontent.com/AoU-Multiomics-Analysis/MTtoVCF/refs/heads/main/scripts/ExportVCF.py
+        curl -O https://raw.githubusercontent.com/AoU-Multiomics-Analysis/MTtoVCF/refs/heads/main/scripts/FilterMT.py
 
         # writes VCF to bucket path 
         # and also generates outpath.txt upon completion 
         # of writing VCF 
-        python3 ExportVCF.py \
+        python3 FilterMT.py \
             --MatrixTable ~{PathMT} \
             --OutputBucket ~{OutputBucket} \
             --OutputPrefix ~{OutputPrefix}
+
+
     >>>
 
     runtime {
@@ -56,10 +62,10 @@ workflow MTtoVCF {
     # uses read_string function to save the output path of 
     # the new VCF to workflow output
     output {
-        String PathVCF = read_string('outpath.txt') 
+        String FilteredMT = read_string('outpath.txt') 
     }
 
+
+
+
 }
-
-
-

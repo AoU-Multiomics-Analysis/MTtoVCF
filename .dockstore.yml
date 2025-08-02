@@ -1,9 +1,9 @@
-version: 1.2
+version: 1.0
 workflows:
   - subclass: WDL 
     primaryDescriptorPath: /workflow/MTtoVCF.wdl
     name: MTtoVCF
-    #- subclass: WDL 
-    #primaryDescriptorPath: /workflow/computeGeneticPCs.wdl
-    #name: computeGeneticPCs
+  - subclass: WDL 
+    primaryDescriptorPath: /workflow/FilterMT.wdl
+    name: FilterMT 
   
