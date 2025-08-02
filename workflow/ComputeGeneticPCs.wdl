@@ -8,12 +8,36 @@ workflow ComputeGeneticPCs {
         String OutputPrefix
     }
 
-    call WriteVCF {
+    call ComputeGeneticPCsTask {
         input: 
             PathMT = UriMatrixTable,
             OutputBucket = OutputBucket
             OutputPrefix = OutputPrefix
             
+    }
+}
+
+
+task ComputeGeneticPCsTask {
+    input {
+
+
+    }
+    
+    command <<<
+
+
+    >>>
+    
+    runtime {
+
+
+
+    }
+
+    output {
+
+
     }
 }
 

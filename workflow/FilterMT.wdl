@@ -6,26 +6,26 @@ workflow FilterMT {
         String UriMatrixTable
         File SampleList
         Int AlleleCountThreshold
-        String OutputMTPath
+        String OutputBucket 
         String OutputPrefix
     }
     
-    call FilterMT {
+    call TaskFilterMT {
         input:
-            PathMT = UriMatrixTable, 
+            UriMatrixTable = UriMatrixTable, 
             SampleList = SampleList,
             AlleleCountThreshold = AlleleCountThreshold,
-            OutputMTPath = OutputMTPath,
+            OutputBucket = OutputBucket,
             OutputPrefix = OutputPrefix
     }
 
 }
-task FilterMT {
+task TaskFilterMT {
     input {
         String UriMatrixTable
         File SampleList
         Int AlleleCountThreshold
-        String OutputMTPath
+        String OutputBucket 
         String OutputPrefix
 
     }
@@ -45,7 +45,9 @@ task FilterMT {
         # and also generates outpath.txt upon completion 
         # of writing VCF 
         python3 FilterMT.py \
-            --MatrixTable ~{PathMT} \
+            --MatrixTable ~{UriMatrixTable} \
+            --SampleList ~{SampleList} \
+            --AlleleCount ~{AlleleCountThreshold} \
             --OutputBucket ~{OutputBucket} \
             --OutputPrefix ~{OutputPrefix}
 
