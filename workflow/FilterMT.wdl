@@ -19,7 +19,7 @@ workflow FilterMT {
             OutputPrefix = OutputPrefix
     }
 
-
+}
 task FilterMT {
     input {
         String UriMatrixTable
