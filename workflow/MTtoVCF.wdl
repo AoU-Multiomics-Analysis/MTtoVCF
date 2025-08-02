@@ -4,13 +4,15 @@ version 1.0
 workflow MTtoVCF {
     input {
         String UriMatrixTable
-        String OutputBucketFilePath
+        String OutputBucket 
+        String OutputPrefix
     }
 
     call WriteVCF {
         input: 
             PathMT = UriMatrixTable,
-            OutputBucketFilePath = OutputBucketFilePath
+            OutputBucket = OutputBucket
+            OutputPrefix = OutputPrefix
             
     }
 }
@@ -18,7 +20,8 @@ workflow MTtoVCF {
     task WriteVCF {
         input {
             String PathMT 
-            String OutputBucketFilePath  
+            String OutputBucket 
+            String OutputPrefix
         }  
     command <<<
         set -e
@@ -34,11 +37,13 @@ workflow MTtoVCF {
 
         curl -O https://raw.githubusercontent.com/evin-padhi/PreprocessVCF/NotebookToWDL/write_vcf.py
         
+        # writes VCF to bucket path 
+        # and also generates outpath.txt upon completion 
+        # of writing VCF 
         python3 ExportVCF.py \
             --MatrixTable ~{PathMT} \
-            --OutputBucketFilePath ~{OutputBucketFilePath} 
-        
-        echo ~{OutputBucketFilePath} > outpath.txt
+            --OutputBucket ~{OutputBucket} \
+            --OutputPrefix ~{OutputPrefix}
     >>>
 
     runtime {
