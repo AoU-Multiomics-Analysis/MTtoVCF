@@ -11,7 +11,7 @@ workflow MTtoVCF {
     call WriteVCF {
         input: 
             PathMT = UriMatrixTable,
-            OutputBucket = OutputBucket
+            OutputBucket = OutputBucket,
             OutputPrefix = OutputPrefix
             
     }
