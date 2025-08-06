@@ -49,7 +49,7 @@ workflow MTtoVCF {
         docker: "quay.io/jonnguye/hail:latest"
         memory: "256G"
         cpu: 64
-        disks: "local-disk 1000 SSD"
+        disks: "local-disk 2000 SSD"
     }
     
     # uses read_string function to save the output path of 
