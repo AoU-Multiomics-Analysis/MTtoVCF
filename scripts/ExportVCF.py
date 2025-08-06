@@ -4,7 +4,7 @@ import os
 
 def write_vcf(inputs):
 
-    OutputFilePath = inputs['OutputBucket'] + '/' + inputs['OutputPrefix'] + '.vcf'
+    OutputFilePath = inputs['OutputBucket'] + '/' + inputs['OutputPrefix'] + '.vcf.bgz'
     print('Writing VCF to:')
     print(OutputFilePath)
 
