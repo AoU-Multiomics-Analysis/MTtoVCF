@@ -13,7 +13,6 @@ workflow MTtoVCF {
             PathMT = UriMatrixTable,
             OutputBucket = OutputBucket,
             OutputPrefix = OutputPrefix
-            
     }
 }
 
