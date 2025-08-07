@@ -43,6 +43,9 @@ def main(args):
 
     hl.stop()
 
+    with open('output.txt', 'w') as file:
+        file.write(f'{args.OutputBucket}/{args.OutputPrefix}_filtered.mt')
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Filter and write Hail MatrixTable with hard-coded Hail configuration.")
     parser.add_argument("--MatrixTable", required=True, help="Path to input MatrixTable.")
