@@ -7,7 +7,7 @@ def main(args):
     app_name='hail_job',
     master='local[*]',
     #gs://fc-secure-b8771cfd-5455-4292-a720-8533eb501a93
-    tmp_dir=f'{args.cloud_tempdir}/hail-tmp/',  # Cloud storage recommended here
+    tmp_dir=f'{args.CloudTmpdir}/hail-tmp/',  # Cloud storage recommended here
     spark_conf={
         'spark.local.dir': '/cromwell_root',  # Local SSD for Spark shuffle/spill
         'spark.executor.instances': '4',
@@ -23,8 +23,8 @@ def main(args):
     )
 
     # Load matrix table and samples table
-    mt = hl.read_matrix_table(args.matrix_table)
-    samples_ht = hl.import_table(args.samples_table, key='research_id')
+    mt = hl.read_matrix_table(args.MatrixTable)
+    samples_ht = hl.import_table(args.SampleList, key='research_id')
 
     # Filter matrix table to samples in samples_ht
     mt_filtered = mt.filter_cols(hl.is_defined(samples_ht[mt.s]))
@@ -35,17 +35,22 @@ def main(args):
     # remove missing AC
     mt_filtered = mt_filtered.filter_rows(~hl.is_missing(mt_filtered.info.AC))
 
+    # filter by allele count
+    mt_filtered = mt_filtered.filter_rows(mt.info.AC >= args.AlleleCount)
+    
     # Write filtered matrix table to output checkpoint
-    mt_filtered.write(args.output_checkpoint, overwrite=True)
+    mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}_filtered.mt, overwrite=True)
 
     hl.stop()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Filter and write Hail MatrixTable with hard-coded Hail configuration.")
-    parser.add_argument("--matrix_table", required=True, help="Path to input MatrixTable.")
-    parser.add_argument("--samples_table", required=True, help="Path to samples TSV file.")
-    parser.add_argument("--output_checkpoint", required=True, help="Path to output checkpoint MatrixTable.")
-    parser.add_argument("--cloud_tmpdir", required=True, help="Temporary directory for spark/hail to work with. Prefix with gs://")
+    parser.add_argument("--MatrixTable", required=True, help="Path to input MatrixTable.")
+    parser.add_argument("--SampleList", required=True, help="Path to samples TSV file.")
+    parser.add_argument("--AlleleCount", required=True, help="Allele count threshold.")
+    parser.add_argument("--OutputBucket", required=True, help="Path to output checkpoint MatrixTable.")
+    parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")
+    parser.add_argument("--CloudTmpdir", required=True, help="Temporary directory for spark/hail to work with. Prefix with gs://")
 
     args = parser.parse_args()
     main(args)
