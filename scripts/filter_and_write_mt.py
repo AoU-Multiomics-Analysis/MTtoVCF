@@ -6,7 +6,6 @@ def main(args):
     hl.init(
     app_name='hail_job',
     master='local[*]',
-    #gs://fc-secure-b8771cfd-5455-4292-a720-8533eb501a93
     tmp_dir=f'{args.CloudTmpdir}',  # Cloud storage recommended here
     spark_conf={
         'spark.local.dir': '/cromwell_root',  # Local SSD for Spark shuffle/spill
