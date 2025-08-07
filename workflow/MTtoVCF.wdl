@@ -6,13 +6,15 @@ workflow MTtoVCF {
         String UriMatrixTable
         String OutputBucket 
         String OutputPrefix
+        String CloudTmpdir
     }
 
     call WriteVCF {
         input: 
             PathMT = UriMatrixTable,
             OutputBucket = OutputBucket,
-            OutputPrefix = OutputPrefix
+            OutputPrefix = OutputPrefix,
+            CloudTmpdir = CloudTmpdir
     }
 }
 
@@ -21,6 +23,7 @@ workflow MTtoVCF {
             String PathMT 
             String OutputBucket 
             String OutputPrefix
+            String CloudTmpdir
         }  
     command <<<
         set -e
@@ -42,7 +45,8 @@ workflow MTtoVCF {
         python3 ExportVCF.py \
             --MatrixTable ~{PathMT} \
             --OutputBucket ~{OutputBucket} \
-            --OutputPrefix ~{OutputPrefix}
+            --OutputPrefix ~{OutputPrefix} \
+            --CloudTmpdir ~{CloudTmpdir}
     >>>
 
     runtime {
