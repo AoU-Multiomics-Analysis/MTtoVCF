@@ -42,7 +42,7 @@ def main(args):
 
     hl.stop()
 
-    with open('output.txt', 'w') as file:
+    with open('outpath.txt', 'w') as file:
         file.write(f'{args.OutputBucket}/{args.OutputPrefix}_filtered.mt')
 
 if __name__ == "__main__":
