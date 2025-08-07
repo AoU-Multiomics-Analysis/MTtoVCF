@@ -28,8 +28,11 @@ def main(args):
 
     # Filter matrix table to samples in samples_ht
     mt_filtered = mt.filter_cols(hl.is_defined(samples_ht[mt.s]))
+    # Filter for biallelic
     mt_filtered = mt_filtered.filter_rows(hl.len(mt_filtered.alleles) == 2)
+    # remove empty GT
     mt_filtered = mt_filtered.filter_rows(hl.agg.any(hl.is_defined(mt_filtered.GT)))
+    # remove missing AC
     mt_filtered = mt_filtered.filter_rows(~hl.is_missing(mt_filtered.info.AC))
 
     # Write filtered matrix table to output checkpoint
