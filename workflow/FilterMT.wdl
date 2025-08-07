@@ -39,7 +39,7 @@ task TaskFilterMT {
         echo "Checking /cromwell_root directory:"
         ls -lah /cromwell_root
 
-        curl -O https://raw.githubusercontent.com/AoU-Multiomics-Analysis/MTtoVCF/refs/heads/main/scripts/FilterMT.py
+        curl -O https://raw.githubusercontent.com/AoU-Multiomics-Analysis/MTtoVCF/refs/heads/main/scripts/filter_and_write_mt.py
 
         # writes VCF to bucket path 
         # and also generates outpath.txt upon completion 
