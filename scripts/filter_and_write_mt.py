@@ -7,7 +7,7 @@ def main(args):
     app_name='hail_job',
     master='local[*]',
     #gs://fc-secure-b8771cfd-5455-4292-a720-8533eb501a93
-    tmp_dir=f'{args.CloudTmpdir}/hail-tmp/',  # Cloud storage recommended here
+    tmp_dir=f'{args.CloudTmpdir}',  # Cloud storage recommended here
     spark_conf={
         'spark.local.dir': '/cromwell_root',  # Local SSD for Spark shuffle/spill
         'spark.executor.instances': '4',
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser.add_argument("--AlleleCount", required=True, help="Allele count threshold.")
     parser.add_argument("--OutputBucket", required=True, help="Path to output checkpoint MatrixTable.")
     parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")
-    parser.add_argument("--CloudTmpdir", required=True, help="Temporary directory for spark/hail to work with. Prefix with gs://")
+    parser.add_argument("--CloudTmpdir", required=True, help="Temporary directory for spark/hail to work with.")
 
     args = parser.parse_args()
     main(args)
