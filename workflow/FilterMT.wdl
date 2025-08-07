@@ -44,7 +44,7 @@ task TaskFilterMT {
         # writes VCF to bucket path 
         # and also generates outpath.txt upon completion 
         # of writing VCF 
-        python3 FilterMT.py \
+        python3 filter_and_write_mt.py \
             --MatrixTable ~{UriMatrixTable} \
             --SampleList ~{SampleList} \
             --AlleleCount ~{AlleleCountThreshold} \
