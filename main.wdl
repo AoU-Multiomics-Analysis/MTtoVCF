@@ -26,18 +26,18 @@ workflow FilterMTAndExportToVCF{
 
     call FilterMT.FilterMT as filter {
         input:
-            UriMatrixTable = UriMatrixTable
-            SampleList = SampleList
-            AlleleCountThreshold = AlleleCountThreshold
-            OutputBucket = OutputBucketCheckpointMT
-            OutputPrefix = OutputPrefix
+            UriMatrixTable = UriMatrixTable,
+            SampleList = SampleList,
+            AlleleCountThreshold = AlleleCountThreshold,
+            OutputBucket = OutputBucketCheckpointMT,
+            OutputPrefix = OutputPrefix,
             CloudTmpdir = CloudTmpdir
     }
 
     call MTtoVCF as export {
         input:
-            UriMatrixTable = filter.FilteredMT
-            OutputBucket = OutputBucketVCF
+            UriMatrixTable = filter.FilteredMT,
+            OutputBucket = OutputBucketVCF,
             OutputPrefix = OutputPrefix
     }
         
@@ -45,6 +45,7 @@ workflow FilterMTAndExportToVCF{
         String PathVCF = export.PathVCF 
     }
 }
+
 
 
 
