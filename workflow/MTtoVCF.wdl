@@ -52,8 +52,10 @@ workflow MTtoVCF {
         disks: "local-disk 2000 SSD"
     }
     
-    # uses read_string function to save the output path of 
-    # the new VCF to workflow output
+    meta {
+        author: "Jonathan Nguyen"
+    }
+    
     output {
         String PathVCF = read_string('outpath.txt') 
     }
