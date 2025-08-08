@@ -23,6 +23,7 @@ if __name__ == "__main__":
     parser.add_argument("--MatrixTable", required=True)
     parser.add_argument("--OutputBucket", required=True)
     parser.add_argument("--OutputPrefix", required=True)
+    parser.add_argument("--CloudTmpdir", required=True)
 
 
     args = parser.parse_args()
@@ -36,6 +37,7 @@ if __name__ == "__main__":
     hl.init(
         app_name='hail_job',
         master='local[*]',
+        tmp_dir=f'{args.CloudTmpdir}',  # Cloud storage recommended here
         spark_conf={
             'spark.executor.instances': '4',
             'spark.executor.cores': '8',
