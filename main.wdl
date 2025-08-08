@@ -3,7 +3,7 @@ import "workflow/MTtoVCF.wdl" as MTtoVCF
 
 workflow FilterMTAndExportToVCF{
     meta {
-            author: 'Jonathan Nguyen'
+            author: "Jonathan Nguyen"
     }
     
     input {
@@ -43,4 +43,5 @@ workflow FilterMTAndExportToVCF{
         String PathVCF = export.PathVCF 
     }
 }
+
 
