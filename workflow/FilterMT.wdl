@@ -21,6 +21,9 @@ workflow FilterMT {
             CloudTmpdir = CloudTmpdir
     }
 
+    output {
+        String FilteredMT = TaskFilterMT.FilteredMT
+    }
 }
 task TaskFilterMT {
     input {
@@ -69,8 +72,4 @@ task TaskFilterMT {
     output {
         String FilteredMT = read_string('outpath.txt') 
     }
-
-
-
-
 }
