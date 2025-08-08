@@ -8,6 +8,7 @@ workflow FilterMT {
         Int AlleleCountThreshold
         String OutputBucket 
         String OutputPrefix
+        String CloudTmpdir
     }
     
     call TaskFilterMT {
@@ -16,7 +17,8 @@ workflow FilterMT {
             SampleList = SampleList,
             AlleleCountThreshold = AlleleCountThreshold,
             OutputBucket = OutputBucket,
-            OutputPrefix = OutputPrefix
+            OutputPrefix = OutputPrefix,
+            CloudTmpdir = CloudTmpdir
     }
 
 }
@@ -27,7 +29,7 @@ task TaskFilterMT {
         Int AlleleCountThreshold
         String OutputBucket 
         String OutputPrefix
-
+        String CloudTmpdir
     }
     command <<<
         export SPARK_LOCAL_DIRS=/cromwell_root
@@ -49,7 +51,8 @@ task TaskFilterMT {
             --SampleList ~{SampleList} \
             --AlleleCount ~{AlleleCountThreshold} \
             --OutputBucket ~{OutputBucket} \
-            --OutputPrefix ~{OutputPrefix}
+            --OutputPrefix ~{OutputPrefix} \
+            --CloudTmpdir ~{CloudTmpdir}
 
 
     >>>
