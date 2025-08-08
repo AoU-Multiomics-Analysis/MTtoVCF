@@ -38,13 +38,15 @@ workflow FilterMTAndExportToVCF{
         input:
             UriMatrixTable = filter.FilteredMT,
             OutputBucket = OutputBucketVCF,
-            OutputPrefix = OutputPrefix
+            OutputPrefix = OutputPrefix,
+            CloudTmpdir = CloudTmpdir
     }
         
     output {
         String PathVCF = export.PathVCF 
     }
 }
+
 
 
 
