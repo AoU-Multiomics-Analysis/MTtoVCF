@@ -16,6 +16,10 @@ workflow MTtoVCF {
             OutputPrefix = OutputPrefix,
             CloudTmpdir = CloudTmpdir
     }
+
+    output {
+        String PathVCF = WriteVCF.PathVCF
+    }
 }
 
     task WriteVCF {
