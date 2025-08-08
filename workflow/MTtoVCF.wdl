@@ -41,7 +41,7 @@ workflow MTtoVCF {
         echo "Checking /cromwell_root directory:"
         ls -lah /cromwell_root
 
-        curl -O https://raw.githubusercontent.com/AoU-Multiomics-Analysis/MTtoVCF/refs/heads/main/scripts/ExportVCF.py
+        curl -O https://raw.githubusercontent.com/AoU-Multiomics-Analysis/MTtoVCF/refs/heads/develop/scripts/ExportVCF.py
 
         # writes VCF to bucket path 
         # and also generates outpath.txt upon completion 
