@@ -6,7 +6,8 @@ workflows:
   - subclass: WDL 
     primaryDescriptorPath: /workflow/FilterMT.wdl
     name: FilterMT 
-  - subclass: WDL 
-    primaryDescriptorPath: /workflow/ComputeGeneticPCs.wdl
-    name: ComputeGeneticPCs
+  - subclass: WDL
+    primaryDescriptorPath: /main.wdl
+    name: FilterMTAndExportToVCF
+  
   
