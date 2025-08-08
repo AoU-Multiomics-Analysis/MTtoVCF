@@ -1,18 +1,46 @@
 import "workflow/FilterMT.wdl" as FilterMT
 import "workflow/MTtoVCF.wdl" as MTtoVCF
 
-workflow wf_featurecount{
+workflow FilterMTAndExportToVCF{
     meta {
             author: 'Jonathan Nguyen'
     }
-
-    call FilterMT.FilterMT{
-      input:
+    
+    input {
+        #FilterMT parameters
+        String UriMatrixTable
+        File SampleList
+        Int AlleleCountThreshold
+        String OutputBucketCheckpointMT
         
+        #Filter MTtoVCF parameters
+        String OutputBucketVCF
+
+        #Shared params
+        String OutputPrefix
+        String CloudTmpdir
     }
 
+
+    call FilterMT.FilterMT as filter {
+        input:
+            UriMatrixTable = UriMatrixTable
+            SampleList = SampleList
+            AlleleCountThreshold = AlleleCountThreshold
+            OutputBucket = OutputBucketCheckpointMT
+            OutputPrefix = OutputPrefix
+            CloudTmpdir = CloudTmpdir
+    }
+
+    call MTtoVCF as export {
+        input:
+            UriMatrixTable = filter.FilteredMT
+            OutputBucket = OutputBucketVCF
+            OutputPrefix = OutputPrefix
+    }
+        
     output {
-        File rna_featurecount_count = count.rna_featurecount_counts
-        File rna_featurecount_summary = count.rna_featurecount_summary
+        String PathVCF = export.PathVCF 
     }
 }
+
