@@ -3,8 +3,11 @@ import argparse
 import os
 
 def write_vcf(inputs):
-
-    OutputFilePath = inputs['OutputBucket'] + '/' + inputs['OutputPrefix'] + '.vcf.bgz'
+    OutputBucket = inputs['OutputBucket'] 
+    if not OutputBucket.endswith('/'):
+        OutputBucket += '/'
+    
+    OutputFilePath = OutputBucket + '/' + inputs['OutputPrefix'] + '.vcf.bgz'
     print('Writing VCF to:')
     print(OutputFilePath)
 
