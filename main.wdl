@@ -1,3 +1,5 @@
+version 1.0
+
 import "workflow/FilterMT.wdl" as FilterMT
 import "workflow/MTtoVCF.wdl" as MTtoVCF
 
@@ -43,5 +45,6 @@ workflow FilterMTAndExportToVCF{
         String PathVCF = export.PathVCF 
     }
 }
+
 
 
