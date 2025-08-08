@@ -7,7 +7,7 @@ def write_vcf(inputs):
     if not OutputBucket.endswith('/'):
         OutputBucket += '/'
     
-    OutputFilePath = OutputBucket + '/' + inputs['OutputPrefix'] + '.vcf.bgz'
+    OutputFilePath = OutputBucket + inputs['OutputPrefix'] + '.vcf.bgz'
     print('Writing VCF to:')
     print(OutputFilePath)
 
