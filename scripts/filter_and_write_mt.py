@@ -38,7 +38,7 @@ def main(args):
     mt_filtered = mt_filtered.filter_rows(mt.info.AC >= args.AlleleCount)
     
     # Write filtered matrix table to output checkpoint
-    mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}_filtered.mt, overwrite=True)
+    mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}_filtered.mt', overwrite=True)
 
     hl.stop()
 
