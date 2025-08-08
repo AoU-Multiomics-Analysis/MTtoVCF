@@ -4,7 +4,13 @@ import os
 
 def write_vcf(inputs):
 
-    OutPath = inputs['']
+    OutPath = inputs['output_path']
+    OutputPrefix = inputs['output_prefix'] 
+    # full_outpath = OutPath + '/' + OutputPrefix 
+    cloud_checkpoint_dir = OutPath + '/hail/' 
+    
+    
+
     #LOAD TABLES AND FIND SUBSET
     print('hail reading matrix table')
     mt = hl.read_matrix_table(inputs['MatrixTable'])
@@ -25,7 +31,7 @@ def write_vcf(inputs):
 
     #Checkpoint for initial filtering
     print("First Checkpoint:", flush=True)
-    mt = mt.checkpoint(f"{inputs['cloud_checkpoint_dir']}/filtered.mt", overwrite=True)
+    mt = mt.checkpoint( cloud_checkpoint_dir + OutputPrefix '.mt', overwrite=True)
     
     #ONLY CONTAINS PASS IN FT
     #IF FT is not pass, set to 0,0
@@ -47,7 +53,7 @@ def write_vcf(inputs):
 
     #Checkpoint for qc stats
     print("Second Checkpoint:", flush=True)
-    mt = mt.checkpoint(f"{inputs['cloud_checkpoint_dir']}/qc_stats.mt", overwrite=True)
+    mt = mt.checkpoint(cloud_checkpoint_dir + OutputPrefix '.mt', overwrite=True)
     
     #95% of alleles called in the population
     mt = mt.filter_rows(mt.info.AN >= 0.95 * mt.count_cols() * 2)
@@ -76,8 +82,13 @@ def write_vcf(inputs):
 
     #Checkpoint for second filter
     print("Third Checkpoint:", flush=True)
-    mt = mt.checkpoint(f"{inputs['cloud_checkpoint_dir']}/second_filter.mt", overwrite=True)
-    
+    mt = mt.checkpoint(cloud_checkpoint_dir + OutputPrefix '.mt', overwrite=True)
+
+  #   if write_vcf == True:
+        # vcf_path =  
+        # hl.export_vcf(mt, inputs['output_path'])
+
+ 
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -85,7 +96,10 @@ if __name__ == "__main__":
     parser.add_argument("--SampleList", required=True)
     parser.add_argument("--AlleleCountThreshold", type=int, required=True)
     parser.add_argument("--output_path", required=True)
-    parser.add_argument("--cloud_checkpoint_dir", required=True)
+    parser.add_argument("--output_prefix", required=True)
+    #parser.add_argument("--cloud_checkpoint_dir", required=True)
+    #parser.add_argument("--write_vcf", required=False,action = "store_true",help = "If flag is present, writes VCF in addition to MT")
+
 
     args = parser.parse_args()
 
@@ -94,7 +108,8 @@ if __name__ == "__main__":
         'SampleList': args.samples_table,
         'AlleleCountThreshold': args.MinimumAC_inclusive,
         'output_path': args.output_path,
-        'cloud_checkpoint_dir': args.cloud_checkpoint_dir
+        #'cloud_checkpoint_dir': args.cloud_checkpoint_dir,
+        #'write_vcf': args.write_vcf
     }
 
     hl.init(
