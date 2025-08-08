@@ -34,8 +34,11 @@ def main(args):
     # remove missing AC
     mt_filtered = mt_filtered.filter_rows(~hl.is_missing(mt_filtered.info.AC))
 
+    # Ensure 95% AN
+    mt_filtered = mt_filtered.filter_rows(mt_filtered.info.AN >= 0.95 * mt_filtered.count_cols() * 2)
+    
     # filter by allele count
-    mt_filtered = mt_filtered.filter_rows(mt.info.AC >= int(args.AlleleCount))
+    mt_filtered = mt_filtered.filter_rows(min(mt_filtered.info.AC) >= int(args.AlleleCount))
     
     # Write filtered matrix table to output checkpoint
     mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}_filtered.mt', overwrite=True)
