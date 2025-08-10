@@ -12,6 +12,7 @@ on:
       - 'scripts/**'  # Trigger on pull requests that affect the scripts directory
     branches: 
       - main
+  workflow_dispatch:
 
 jobs:
   build_and_push:
