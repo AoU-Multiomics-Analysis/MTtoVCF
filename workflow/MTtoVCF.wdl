@@ -16,6 +16,10 @@ workflow MTtoVCF {
             OutputPrefix = OutputPrefix,
             CloudTmpdir = CloudTmpdir
     }
+
+    output {
+        String PathVCF = WriteVCF.PathVCF
+    }
 }
 
     task WriteVCF {
@@ -37,7 +41,7 @@ workflow MTtoVCF {
         echo "Checking /cromwell_root directory:"
         ls -lah /cromwell_root
 
-        curl -O https://raw.githubusercontent.com/AoU-Multiomics-Analysis/MTtoVCF/refs/heads/main/scripts/ExportVCF.py
+        curl -O https://raw.githubusercontent.com/AoU-Multiomics-Analysis/MTtoVCF/refs/heads/develop/scripts/ExportVCF.py
 
         # writes VCF to bucket path 
         # and also generates outpath.txt upon completion 
@@ -50,14 +54,16 @@ workflow MTtoVCF {
     >>>
 
     runtime {
-        docker: "quay.io/jonnguye/hail:latest"
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf:pr-2"
         memory: "256G"
         cpu: 64
         disks: "local-disk 2000 SSD"
     }
     
-    # uses read_string function to save the output path of 
-    # the new VCF to workflow output
+    meta {
+        author: "Jonathan Nguyen"
+    }
+    
     output {
         String PathVCF = read_string('outpath.txt') 
     }

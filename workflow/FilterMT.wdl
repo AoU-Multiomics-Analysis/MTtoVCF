@@ -8,6 +8,7 @@ workflow FilterMT {
         Int AlleleCountThreshold
         String OutputBucket 
         String OutputPrefix
+        String CloudTmpdir
     }
     
     call TaskFilterMT {
@@ -16,9 +17,13 @@ workflow FilterMT {
             SampleList = SampleList,
             AlleleCountThreshold = AlleleCountThreshold,
             OutputBucket = OutputBucket,
-            OutputPrefix = OutputPrefix
+            OutputPrefix = OutputPrefix,
+            CloudTmpdir = CloudTmpdir
     }
 
+    output {
+        String FilteredMT = TaskFilterMT.FilteredMT
+    }
 }
 task TaskFilterMT {
     input {
@@ -27,7 +32,7 @@ task TaskFilterMT {
         Int AlleleCountThreshold
         String OutputBucket 
         String OutputPrefix
-
+        String CloudTmpdir
     }
     command <<<
         export SPARK_LOCAL_DIRS=/cromwell_root
@@ -39,23 +44,24 @@ task TaskFilterMT {
         echo "Checking /cromwell_root directory:"
         ls -lah /cromwell_root
 
-        curl -O https://raw.githubusercontent.com/AoU-Multiomics-Analysis/MTtoVCF/refs/heads/main/scripts/FilterMT.py
+        curl -O https://raw.githubusercontent.com/AoU-Multiomics-Analysis/MTtoVCF/refs/heads/develop/scripts/filter_and_write_mt.py
 
         # writes VCF to bucket path 
         # and also generates outpath.txt upon completion 
         # of writing VCF 
-        python3 FilterMT.py \
+        python3 filter_and_write_mt.py \
             --MatrixTable ~{UriMatrixTable} \
             --SampleList ~{SampleList} \
             --AlleleCount ~{AlleleCountThreshold} \
             --OutputBucket ~{OutputBucket} \
-            --OutputPrefix ~{OutputPrefix}
+            --OutputPrefix ~{OutputPrefix} \
+            --CloudTmpdir ~{CloudTmpdir}
 
 
     >>>
 
     runtime {
-        docker: "quay.io/jonnguye/hail:latest"
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf:pr-2"
         memory: "256G"
         cpu: 64
         disks: "local-disk 1000 SSD"
@@ -66,8 +72,4 @@ task TaskFilterMT {
     output {
         String FilteredMT = read_string('outpath.txt') 
     }
-
-
-
-
 }
