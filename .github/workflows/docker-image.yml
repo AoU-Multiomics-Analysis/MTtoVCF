@@ -12,7 +12,6 @@ on:
       - 'scripts/**'  # Trigger on pull requests that affect the scripts directory
     branches: 
       - main
-  workflow_dispatch:
 
 jobs:
   build_and_push:
@@ -46,4 +45,3 @@ jobs:
           push: true
           tags: |
             ${{ steps.meta.outputs.tags }}
-            ${{ github.ref == 'refs/heads/main' && 'latest' || 'develop' }}
