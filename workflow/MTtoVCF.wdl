@@ -1,6 +1,5 @@
 version 1.0
 
-
 workflow MTtoVCF {
     input {
         String UriMatrixTable
@@ -34,19 +33,10 @@ workflow MTtoVCF {
 
         export SPARK_LOCAL_DIRS=/cromwell_root
 
-        echo "Checking disk mounts and usage:"
-        df -h
-        echo "Checking Spark local directory:"
-        echo $SPARK_LOCAL_DIRS
-        echo "Checking /cromwell_root directory:"
-        ls -lah /cromwell_root
-
-        curl -O https://raw.githubusercontent.com/AoU-Multiomics-Analysis/MTtoVCF/refs/heads/develop/scripts/ExportVCF.py
-
         # writes VCF to bucket path 
         # and also generates outpath.txt upon completion 
         # of writing VCF 
-        python3 ExportVCF.py \
+        python3 /ExportVCF.py \
             --MatrixTable ~{PathMT} \
             --OutputBucket ~{OutputBucket} \
             --OutputPrefix ~{OutputPrefix} \
@@ -67,8 +57,4 @@ workflow MTtoVCF {
     output {
         String PathVCF = read_string('outpath.txt') 
     }
-
 }
-
-
-
