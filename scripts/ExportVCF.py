@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument("--MatrixTable", required=True)
     parser.add_argument("--OutputBucket", required=True)
     parser.add_argument("--OutputPrefix", required=True)
-    parser.add_argument("--CloudTmpdir", required=True)
+    # parser.add_argument("--CloudTmpdir", required=True)
 
 
     args = parser.parse_args()
