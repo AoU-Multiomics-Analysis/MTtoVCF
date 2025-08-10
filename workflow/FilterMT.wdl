@@ -61,7 +61,7 @@ task TaskFilterMT {
     >>>
 
     runtime {
-        docker: "quay.io/jonnguye/hail:latest"
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf:pr-2"
         memory: "256G"
         cpu: 64
         disks: "local-disk 1000 SSD"
