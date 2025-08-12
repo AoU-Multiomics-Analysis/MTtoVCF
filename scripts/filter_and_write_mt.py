@@ -33,7 +33,9 @@ def main(args):
     mt_filtered = mt_filtered.filter_rows(hl.agg.any(hl.is_defined(mt_filtered.GT)))
     # remove missing AC
     mt_filtered = mt_filtered.filter_rows(~hl.is_missing(mt_filtered.info.AC))
-
+    # filter out bad quals
+    mt_filtered = mt_filtered.filter_rows(hl.is_missing(mt_filtered.filters))
+    
     # Ensure 95% AN
     mt_filtered = mt_filtered.filter_rows(mt_filtered.info.AN >= 0.95 * mt_filtered.count_cols() * 2)
     
