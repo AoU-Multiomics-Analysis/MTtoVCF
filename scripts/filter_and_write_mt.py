@@ -41,6 +41,31 @@ def main(args):
     
     # filter by allele count
     mt_filtered = mt_filtered.filter_rows(hl.min(mt_filtered.info.AC) >= int(args.AlleleCount))
+
+    # add variant qc stats
+    mt_filtered = hl.variant_qc(mt_filtered)
+    # save off total qc
+    mt_filtered = mt_filtered.annotate_rows(
+        total = mt_filtered.info.annotate(
+            ALL_p_value_hwe = mt_filtered.variant_qc.p_value_hwe,
+            ALL_p_value_excess_het = mt_filtered.variant_qc.p_value_excess_het
+        )
+    )
+    # recalculate AC/AF/AN on new filtered set
+    mt_filtered = mt_filtered.annotate_rows( info = hl.agg.call_stats(mt_filtered.GT, mt_filtered.alleles) )
+    
+    # save to info field to export to vcf
+    mt_filtered = mt_filtered.annotate_rows(
+            info = mt_filtered.info.annotate(
+                ALL_p_value_hwe = mt_filtered.total.ALL_p_value_hwe,
+                ALL_p_value_excess_het = mt_filtered.total.ALL_p_value_excess_het,
+                AF = hl.min(mt_filtered.info.AF),
+                AC = hl.min(mt_filtered.info.AC),
+                AN = mt_filtered.info.AN,
+            )
+        )
+    # get rid of unneeded fields for matrix table save
+    mt_filtered = mt_filtered.drop("variant_qc","total")
     
     # Write filtered matrix table to output checkpoint
     mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}_filtered.mt', overwrite=True)
