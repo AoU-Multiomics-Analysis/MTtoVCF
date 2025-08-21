@@ -35,12 +35,6 @@ def main(args):
     mt_filtered = mt_filtered.filter_rows(~hl.is_missing(mt_filtered.info.AC))
     # filter out bad quals
     mt_filtered = mt_filtered.filter_rows(hl.is_missing(mt_filtered.filters))
-    
-    # Ensure 95% AN
-    mt_filtered = mt_filtered.filter_rows(mt_filtered.info.AN >= 0.95 * mt_filtered.count_cols() * 2)
-    
-    # filter by allele count
-    mt_filtered = mt_filtered.filter_rows(hl.min(mt_filtered.info.AC) >= int(args.AlleleCount))
 
     # add variant qc stats
     mt_filtered = hl.variant_qc(mt_filtered)
@@ -53,6 +47,12 @@ def main(args):
     )
     # recalculate AC/AF/AN on new filtered set
     mt_filtered = mt_filtered.annotate_rows( info = hl.agg.call_stats(mt_filtered.GT, mt_filtered.alleles) )
+
+    # Allele number percentage cutoff
+    mt_filtered = mt_filtered.filter_rows(mt_filtered.info.AN >= float(args.AlleleNumberPercentage) * mt_filtered.count_cols() * 2)
+    
+    # filter by allele count
+    mt_filtered = mt_filtered.filter_rows(hl.min(mt_filtered.info.AC) >= int(args.AlleleCount)) 
     
     # save to info field to export to vcf
     mt_filtered = mt_filtered.annotate_rows(
@@ -68,18 +68,19 @@ def main(args):
     mt_filtered = mt_filtered.drop("variant_qc","total")
     
     # Write filtered matrix table to output checkpoint
-    mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}_filtered.mt', overwrite=True)
+    mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}.AC{args.AlleleCount}.AN{int(args.AlleleNumberPercentage*100)}.biallelic.mt', overwrite=True)
 
     hl.stop()
 
     with open('outpath.txt', 'w') as file:
-        file.write(f'{args.OutputBucket}/{args.OutputPrefix}_filtered.mt')
+        file.write(f'{args.OutputBucket}/{args.OutputPrefix}.AC{args.AlleleCount}.AN{int(args.AlleleNumberPercentage*100)}.biallelic.mt')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Filter and write Hail MatrixTable with hard-coded Hail configuration.")
     parser.add_argument("--MatrixTable", required=True, help="Path to input MatrixTable.")
     parser.add_argument("--SampleList", required=True, help="Path to samples TSV file.")
     parser.add_argument("--AlleleCount", required=True, help="Allele count threshold.")
+    parser.add_argument("--AlleleNumberPercentage", required=True, help="Allele number percentage cutoff.")
     parser.add_argument("--OutputBucket", required=True, help="Path to output checkpoint MatrixTable.")
     parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")
     parser.add_argument("--CloudTmpdir", required=True, help="Temporary directory for spark/hail to work with.")
