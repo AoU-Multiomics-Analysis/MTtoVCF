@@ -12,8 +12,8 @@ workflow FilterMTAndExportToVCF{
         #FilterMT parameters
         String UriMatrixTable
         File SampleList
-        Int AlleleCountThreshold
-        Int AlleleNumberPercentage
+        Int AlleleCountThreshold = 5
+        Int AlleleNumberPercentage = 95
         String OutputBucketCheckpointMT
         
         #Filter MTtoVCF parameters
@@ -49,6 +49,7 @@ workflow FilterMTAndExportToVCF{
         String PathVCF = export.PathVCF 
     }
 }
+
 
 
 
