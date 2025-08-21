@@ -5,6 +5,7 @@ workflow FilterMT {
         String UriMatrixTable
         File SampleList
         Int AlleleCountThreshold
+        Int AlleleNumberPercentage
         String OutputBucket 
         String OutputPrefix
         String CloudTmpdir
@@ -15,6 +16,7 @@ workflow FilterMT {
             UriMatrixTable = UriMatrixTable, 
             SampleList = SampleList,
             AlleleCountThreshold = AlleleCountThreshold,
+            AlleleNumberPercentage = AlleleNumberPercentage,
             OutputBucket = OutputBucket,
             OutputPrefix = OutputPrefix,
             CloudTmpdir = CloudTmpdir
@@ -30,6 +32,7 @@ task TaskFilterMT {
         String UriMatrixTable
         File SampleList
         Int AlleleCountThreshold
+        Int AlleleNumberPercentage
         String OutputBucket 
         String OutputPrefix
         String CloudTmpdir
@@ -45,6 +48,7 @@ task TaskFilterMT {
             --MatrixTable ~{UriMatrixTable} \
             --SampleList ~{SampleList} \
             --AlleleCount ~{AlleleCountThreshold} \
+            --AlleleNumberPercentage ~{AlleleNumberPercentage} \
             --OutputBucket ~{OutputBucket} \
             --OutputPrefix ~{OutputPrefix} \
             --CloudTmpdir ~{CloudTmpdir}
