@@ -6,7 +6,7 @@ workflow MTtoVCF {
         String OutputBucket 
         String OutputPrefix
         String CloudTmpdir
-        String Branch
+        String Branch = "main"
     }
 
     call WriteVCF {
