@@ -49,7 +49,7 @@ def main(args):
     mt_filtered = mt_filtered.annotate_rows( info = hl.agg.call_stats(mt_filtered.GT, mt_filtered.alleles) )
 
     # Allele number percentage cutoff
-    mt_filtered = mt_filtered.filter_rows(mt_filtered.info.AN >= float(args.AlleleNumberPercentage) * mt_filtered.count_cols() * 2)
+    mt_filtered = mt_filtered.filter_rows(mt_filtered.info.AN >= int(args.AlleleNumberPercentage)/100 * mt_filtered.count_cols() * 2)
     
     # filter by allele count
     mt_filtered = mt_filtered.filter_rows(hl.min(mt_filtered.info.AC) >= int(args.AlleleCount)) 
@@ -68,12 +68,12 @@ def main(args):
     mt_filtered = mt_filtered.drop("variant_qc","total")
     
     # Write filtered matrix table to output checkpoint
-    mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}.AC{args.AlleleCount}.AN{int(args.AlleleNumberPercentage*100)}.biallelic.mt', overwrite=True)
+    mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}.mt', overwrite=True)
 
     hl.stop()
 
     with open('outpath.txt', 'w') as file:
-        file.write(f'{args.OutputBucket}/{args.OutputPrefix}.AC{args.AlleleCount}.AN{int(args.AlleleNumberPercentage*100)}.biallelic.mt')
+        file.write(f'{args.OutputBucket}/{args.OutputPrefix}.mt')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Filter and write Hail MatrixTable with hard-coded Hail configuration.")
