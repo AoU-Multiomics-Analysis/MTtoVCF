@@ -4,8 +4,8 @@ workflow FilterMT {
     input {
         String UriMatrixTable
         File SampleList
-        Int AlleleCountThreshold
-        Int AlleleNumberPercentage
+        Int AlleleCountThreshold = 5
+        Int AlleleNumberPercentage = 95
         String OutputBucket 
         String OutputPrefix
         String CloudTmpdir
