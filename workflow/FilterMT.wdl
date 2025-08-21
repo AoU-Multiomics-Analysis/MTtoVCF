@@ -19,7 +19,8 @@ workflow FilterMT {
             AlleleNumberPercentage = AlleleNumberPercentage,
             OutputBucket = OutputBucket,
             OutputPrefix = OutputPrefix,
-            CloudTmpdir = CloudTmpdir
+            CloudTmpdir = CloudTmpdir,
+            Branch = Branch
     }
 
     output {
@@ -36,6 +37,7 @@ task TaskFilterMT {
         String OutputBucket 
         String OutputPrefix
         String CloudTmpdir
+        String Branch
     }
 
     command <<<
@@ -55,7 +57,7 @@ task TaskFilterMT {
     >>>
 
     runtime {
-        docker: "ghcr.io/aou-multiomics-analysis/mttovcf:main"
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf:" + Branch
         memory: "256G"
         cpu: 64
         disks: "local-disk 1000 SSD"
