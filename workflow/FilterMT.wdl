@@ -9,6 +9,7 @@ workflow FilterMT {
         String OutputBucket 
         String OutputPrefix
         String CloudTmpdir
+        String Branch = "main"
     }
     
     call TaskFilterMT {
