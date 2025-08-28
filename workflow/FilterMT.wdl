@@ -4,10 +4,12 @@ workflow FilterMT {
     input {
         String UriMatrixTable
         File SampleList
-        Int AlleleCountThreshold
+        Int AlleleCountThreshold = 5
+        Int AlleleNumberPercentage = 95
         String OutputBucket 
         String OutputPrefix
         String CloudTmpdir
+        String Branch = "main"
     }
     
     call TaskFilterMT {
@@ -15,9 +17,11 @@ workflow FilterMT {
             UriMatrixTable = UriMatrixTable, 
             SampleList = SampleList,
             AlleleCountThreshold = AlleleCountThreshold,
+            AlleleNumberPercentage = AlleleNumberPercentage,
             OutputBucket = OutputBucket,
             OutputPrefix = OutputPrefix,
-            CloudTmpdir = CloudTmpdir
+            CloudTmpdir = CloudTmpdir,
+            Branch = Branch
     }
 
     output {
@@ -30,9 +34,11 @@ task TaskFilterMT {
         String UriMatrixTable
         File SampleList
         Int AlleleCountThreshold
+        Int AlleleNumberPercentage
         String OutputBucket 
         String OutputPrefix
         String CloudTmpdir
+        String Branch
     }
 
     command <<<
@@ -45,13 +51,14 @@ task TaskFilterMT {
             --MatrixTable ~{UriMatrixTable} \
             --SampleList ~{SampleList} \
             --AlleleCount ~{AlleleCountThreshold} \
+            --AlleleNumberPercentage ~{AlleleNumberPercentage} \
             --OutputBucket ~{OutputBucket} \
             --OutputPrefix ~{OutputPrefix} \
             --CloudTmpdir ~{CloudTmpdir}
     >>>
 
     runtime {
-        docker: "ghcr.io/aou-multiomics-analysis/mttovcf:main"
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf:" + Branch
         memory: "256G"
         cpu: 64
         disks: "local-disk 1000 SSD"

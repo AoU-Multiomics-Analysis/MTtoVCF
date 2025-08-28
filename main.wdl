@@ -12,7 +12,8 @@ workflow FilterMTAndExportToVCF{
         #FilterMT parameters
         String UriMatrixTable
         File SampleList
-        Int AlleleCountThreshold
+        Int AlleleCountThreshold = 5
+        Int AlleleNumberPercentage = 95
         String OutputBucketCheckpointMT
         
         #Filter MTtoVCF parameters
@@ -21,31 +22,39 @@ workflow FilterMTAndExportToVCF{
         #Shared params
         String OutputPrefix
         String CloudTmpdir
+        String Branch = "main"
     }
 
+    String FullPrefix = "~{OutputPrefix}.AC~{AlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic"
 
     call FilterMT.FilterMT as filter {
         input:
             UriMatrixTable = UriMatrixTable,
             SampleList = SampleList,
             AlleleCountThreshold = AlleleCountThreshold,
+            AlleleNumberPercentage = AlleleNumberPercentage,
             OutputBucket = OutputBucketCheckpointMT,
-            OutputPrefix = OutputPrefix,
-            CloudTmpdir = CloudTmpdir
+            OutputPrefix = FullPrefix,
+            CloudTmpdir = CloudTmpdir,
+            Branch = Branch
     }
 
     call MTtoVCF.MTtoVCF as export {
         input:
             UriMatrixTable = filter.FilteredMT,
             OutputBucket = OutputBucketVCF,
-            OutputPrefix = OutputPrefix,
-            CloudTmpdir = CloudTmpdir
+            OutputPrefix = FullPrefix,
+            CloudTmpdir = CloudTmpdir,
+            Branch = Branch
     }
         
     output {
         String PathVCF = export.PathVCF 
     }
 }
+
+
+
 
 
 

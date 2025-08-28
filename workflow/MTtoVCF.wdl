@@ -6,6 +6,7 @@ workflow MTtoVCF {
         String OutputBucket 
         String OutputPrefix
         String CloudTmpdir
+        String Branch = "main"
     }
 
     call WriteVCF {
@@ -13,7 +14,8 @@ workflow MTtoVCF {
             PathMT = UriMatrixTable,
             OutputBucket = OutputBucket,
             OutputPrefix = OutputPrefix,
-            CloudTmpdir = CloudTmpdir
+            CloudTmpdir = CloudTmpdir,
+            Branch = Branch
     }
 
     output {
@@ -27,6 +29,7 @@ workflow MTtoVCF {
             String OutputBucket 
             String OutputPrefix
             String CloudTmpdir
+            String Branch
         }  
     command <<<
         set -e
@@ -44,7 +47,7 @@ workflow MTtoVCF {
     >>>
 
     runtime {
-        docker: "ghcr.io/aou-multiomics-analysis/mttovcf:main"
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf:" + Branch
         memory: "256G"
         cpu: 64
         disks: "local-disk 2000 SSD"
