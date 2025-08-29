@@ -15,6 +15,8 @@ workflow FilterMTAndExportToVCF{
         Int AlleleCountThreshold = 5
         Int AlleleNumberPercentage = 95
         String OutputBucketCheckpointMT
+        String SampleSetName
+        String CallSetName
         
         #Filter MTtoVCF parameters
         String OutputBucketVCF
@@ -25,7 +27,7 @@ workflow FilterMTAndExportToVCF{
         String Branch = "main"
     }
 
-    String FullPrefix = "~{OutputPrefix}.AC~{AlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic"
+    String FullPrefix = "~{OutputPrefix}.~{SampleSetName}.AC~{AlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic.~{CallSetName}"
 
     call FilterMT.FilterMT as filter {
         input:
@@ -52,6 +54,7 @@ workflow FilterMTAndExportToVCF{
         String PathVCF = export.PathVCF 
     }
 }
+
 
 
 
