@@ -12,7 +12,8 @@ workflow FilterMTAndExportToVCF{
         #FilterMT parameters
         String UriMatrixTable
         File SampleList
-        Int AlleleCountThreshold = 5
+        Int MinAlleleCountThreshold = 5
+        Int MaxAlleleCountThreshold = 10000000
         Int AlleleNumberPercentage = 95
         String OutputBucketCheckpointMT
         String SampleSetName
@@ -27,13 +28,14 @@ workflow FilterMTAndExportToVCF{
         String Branch = "main"
     }
 
-    String FullPrefix = "~{OutputPrefix}.~{SampleSetName}.AC~{AlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic.~{CallSetName}"
+    String FullPrefix = "~{OutputPrefix}.~{SampleSetName}.AC~{MinAlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic.~{CallSetName}"
 
     call FilterMT.FilterMT as filter {
         input:
             UriMatrixTable = UriMatrixTable,
             SampleList = SampleList,
-            AlleleCountThreshold = AlleleCountThreshold,
+            MinAlleleCountThreshold = MinAlleleCountThreshold,
+            MaxAlleleCountThreshold = MaxAlleleCountThreshold,
             AlleleNumberPercentage = AlleleNumberPercentage,
             OutputBucket = OutputBucketCheckpointMT,
             OutputPrefix = FullPrefix,
