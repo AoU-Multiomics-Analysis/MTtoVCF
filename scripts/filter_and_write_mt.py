@@ -55,7 +55,7 @@ def main(args):
     #mt_filtered = mt_filtered.filter_rows(hl.min(mt_filtered.info.AC) >= int(args.AlleleCount)) 
     mt_filtered = mt_filtered.filter_rows(
         (hl.min(mt_filtered.info.AC) >= int(args.MinAlleleCount)) &
-        (hl.max(mt_filtered.info.AC) <= int(args.MaxAlleleCount))
+        (hl.min(mt_filtered.info.AC) <= int(args.MaxAlleleCount))
     )
     # save to info field to export to vcf
     mt_filtered = mt_filtered.annotate_rows(
