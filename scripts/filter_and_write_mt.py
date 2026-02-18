@@ -52,7 +52,7 @@ def main(args):
     mt_filtered = mt_filtered.filter_rows(mt_filtered.info.AN >= int(args.AlleleNumberPercentage)/100 * mt_filtered.count_cols() * 2)
     
     # filter by allele count
-    mt_filtered = mt_filtered.filter_rows(hl.min(mt_filtered.info.AC) >= int(args.AlleleCount)) 
+    #mt_filtered = mt_filtered.filter_rows(hl.min(mt_filtered.info.AC) >= int(args.AlleleCount)) 
     mt_filtered = mt_filtered.filter_rows(
         (hl.min(mt_filtered.info.AC) >= int(args.MinAlleleCount)) &
         (hl.max(mt_filtered.info.AC) <= int(args.MaxAlleleCount))
