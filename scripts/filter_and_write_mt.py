@@ -53,7 +53,10 @@ def main(args):
     
     # filter by allele count
     mt_filtered = mt_filtered.filter_rows(hl.min(mt_filtered.info.AC) >= int(args.AlleleCount)) 
-    
+    mt_filtered = mt_filtered.filter_rows(
+        (hl.min(mt_filtered.info.AC) >= int(args.MinAlleleCount)) &
+        (hl.max(mt_filtered.info.AC) <= int(args.MaxAlleleCount))
+    )
     # save to info field to export to vcf
     mt_filtered = mt_filtered.annotate_rows(
             info = mt_filtered.info.annotate(
@@ -79,7 +82,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Filter and write Hail MatrixTable with hard-coded Hail configuration.")
     parser.add_argument("--MatrixTable", required=True, help="Path to input MatrixTable.")
     parser.add_argument("--SampleList", required=True, help="Path to samples TSV file.")
-    parser.add_argument("--AlleleCount", required=True, help="Allele count threshold.")
+    parser.add_argument("--MinAlleleCount", required=True, help="Min Allele count threshold.")
+    parser.add_argument("--MaxAlleleCount", required=True, help="Max Allele count threshold.")
     parser.add_argument("--AlleleNumberPercentage", required=True, help="Allele number percentage cutoff.")
     parser.add_argument("--OutputBucket", required=True, help="Path to output checkpoint MatrixTable.")
     parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")

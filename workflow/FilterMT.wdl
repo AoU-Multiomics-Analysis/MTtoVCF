@@ -4,7 +4,8 @@ workflow FilterMT {
     input {
         String UriMatrixTable
         File SampleList
-        Int AlleleCountThreshold = 5
+        Int MinAlleleCountThreshold = 5
+        Int MaxAlleleCountThreshold = 1000000000
         Int AlleleNumberPercentage = 95
         String OutputBucket 
         String OutputPrefix
@@ -16,7 +17,8 @@ workflow FilterMT {
         input:
             UriMatrixTable = UriMatrixTable, 
             SampleList = SampleList,
-            AlleleCountThreshold = AlleleCountThreshold,
+            MinAlleleCountThreshold = MinAlleleCountThreshold,
+            MaxAlleleCountThreshold = MaxAlleleCountThreshold,
             AlleleNumberPercentage = AlleleNumberPercentage,
             OutputBucket = OutputBucket,
             OutputPrefix = OutputPrefix,
@@ -33,7 +35,8 @@ task TaskFilterMT {
     input {
         String UriMatrixTable
         File SampleList
-        Int AlleleCountThreshold
+        Int MinAlleleCountThreshold
+        Int MaxAlleleCountThreshold
         Int AlleleNumberPercentage
         String OutputBucket 
         String OutputPrefix
@@ -50,7 +53,8 @@ task TaskFilterMT {
         python3 /filter_and_write_mt.py \
             --MatrixTable ~{UriMatrixTable} \
             --SampleList ~{SampleList} \
-            --AlleleCount ~{AlleleCountThreshold} \
+            --MinAlleleCount ~{MinAlleleCountThreshold} \
+            --MaxAlleleCount ~{MaxAlleleCountThreshold} \
             --AlleleNumberPercentage ~{AlleleNumberPercentage} \
             --OutputBucket ~{OutputBucket} \
             --OutputPrefix ~{OutputPrefix} \
