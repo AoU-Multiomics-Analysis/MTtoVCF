@@ -11,6 +11,7 @@ workflow FilterMT {
         String OutputPrefix
         String CloudTmpdir
         String Branch = "main"
+        File? BedFile
     }
     
     call TaskFilterMT {
@@ -23,7 +24,8 @@ workflow FilterMT {
             OutputBucket = OutputBucket,
             OutputPrefix = OutputPrefix,
             CloudTmpdir = CloudTmpdir,
-            Branch = Branch
+            Branch = Branch,
+            BedFile = BedFile
     }
 
     output {
@@ -35,6 +37,7 @@ task TaskFilterMT {
     input {
         String UriMatrixTable
         File SampleList
+        File? BedFile
         Int MinAlleleCountThreshold
         Int MaxAlleleCountThreshold
         Int AlleleNumberPercentage
@@ -50,7 +53,7 @@ task TaskFilterMT {
         # writes VCF to bucket path 
         # and also generates outpath.txt upon completion 
         # of writing VCF 
-        python3 /filter_and_write_mt.py \
+        python3 /filter_and_write_mt.py   ~{if defined(BedFile) then "--BedFile " + BedFile else ""}  \
             --MatrixTable ~{UriMatrixTable} \
             --SampleList ~{SampleList} \
             --MinAlleleCount ~{MinAlleleCountThreshold} \

@@ -25,6 +25,10 @@ def main(args):
     mt = hl.read_matrix_table(args.MatrixTable)
     samples_ht = hl.import_table(args.SampleList, key='research_id')
 
+    if args.bed:
+        regions = hl.import_bed(args.bed)
+        mt = mt.filter_intervals(regions)
+
     # Filter matrix table to samples in samples_ht
     mt_filtered = mt.filter_cols(hl.is_defined(samples_ht[mt.s]))
     # Filter for biallelic
@@ -84,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument("--SampleList", required=True, help="Path to samples TSV file.")
     parser.add_argument("--MinAlleleCount", required=True, help="Min Allele count threshold.")
     parser.add_argument("--MaxAlleleCount", required=True, help="Max Allele count threshold.")
+    parser.add_argument("--BedFile", required=False, help="Bed file containing regions of interest, typically cis windows for genes")
     parser.add_argument("--AlleleNumberPercentage", required=True, help="Allele number percentage cutoff.")
     parser.add_argument("--OutputBucket", required=True, help="Path to output checkpoint MatrixTable.")
     parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")
