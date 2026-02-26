@@ -24,7 +24,7 @@ def main(args):
     # Load matrix table and samples table
     mt = hl.read_matrix_table(args.MatrixTable)
     samples_ht = hl.import_table(args.SampleList, key='research_id')
-    ancestry_ht = hl.import_table(args.AncestryAssignments,key = 'research_id',types={'research_id': hl.tstr},,delimiter = "\t",missing = "NA")
+    ancestry_ht = hl.import_table(args.AncestryAssignments,key = 'research_id',types={'research_id': hl.tstr},delimiter = "\t",missing = "NA")
     ancestry_ht = ancestry_ht.key_by(s=ancestry_ht.research_id)
     mt = mt.annotate_cols(**ancestry_ht[mt.s])
 
