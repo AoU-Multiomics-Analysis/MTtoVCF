@@ -30,8 +30,8 @@ def main(args):
 
     if args.BedFile:
         regions = hl.import_bed(args.BedFile)
-        mt = mt.filter_intervals(regions)
-
+        #mt = mt.filter_intervals(regions)
+        mt = mt.filter_rows(hl.is_defined(regions[mt.locus]))
     # Filter matrix table to samples in samples_ht
     mt_filtered = mt.filter_cols(hl.is_defined(samples_ht[mt.s]))
     # Filter for biallelic
