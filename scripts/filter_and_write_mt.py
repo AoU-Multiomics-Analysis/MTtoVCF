@@ -24,6 +24,9 @@ def main(args):
     # Load matrix table and samples table
     mt = hl.read_matrix_table(args.MatrixTable)
     samples_ht = hl.import_table(args.SampleList, key='research_id')
+    ancestry_ht = hl.import_table(args.AncestryAssignments,key = 'research_id',impute = True,delimiter = "\t",missing = "NA")
+    ancestry_ht = ancestry_ht.key_by(s=ancestry_ht.research_id)
+    mt = mt.annotate_cols(**ancestry_ht[mt.s])
 
     if args.bed:
         regions = hl.import_bed(args.bed)
@@ -61,19 +64,63 @@ def main(args):
         (hl.min(mt_filtered.info.AC) >= int(args.MinAlleleCount)) &
         (hl.min(mt_filtered.info.AC) <= int(args.MaxAlleleCount))
     )
+
+    # filters superset mt to variants present in select samples
+    # for MAF calculation in larger AoU cohort
+    mt_subset = mt.semi_join_rows(mt_filtered.rows())
+    cs_by_anc = hl.agg.group_by(
+        mt_subset.ancestry_pred_other,
+        hl.agg.call_stats(mt_subset.GT, mt_subset.alleles)
+    )
+    cs_all = hl.agg.call_stats(mt_subset.GT,mt_subset.alleles)
+    mt_subset = mt_subset.annotate_rows(
+        AF = cs_all.AF,
+        AN = cs_all.AN,
+        AC = cs_all.AC,
+        AF_by_anc = hl.dict(hl.map_values(cs_by_anc, lambda cs: cs.AF)),
+        AN_by_anc = hl.dict(hl.map_values(cs_by_anc, lambda cs: cs.AN)),
+        AC_by_anc = hl.dict(hl.map_values(cs_by_anc, lambda cs: cs.AC)),
+    )
+    ancs = (
+        mt_subset.aggregate_cols(hl.agg.collect_as_set(mt_subset.ancestry_pred_group))
+    )
+    ancs = sorted([a for a in ancs if a is not None])
+
+    af_rows_ht = mt_subset.rows().select("AF", "AN", "AC", "AF_by_anc", "AN_by_anc", "AC_by_anc")
+    af_rows_ht = af_rows_ht.key_by('locus', 'alleles')
+    mt_filtered = mt_filtered.annotate_rows(_af = af_rows_ht[mt_filtered.row_key])
+    flat = {}
+    for a in ancs:
+        cs = mt_filtered._af.cs_by_anc.get(a)
+        tag = anc_map[a] if 'anc_map' in globals() else a  # use sanitized if you made it
+
+        flat[f"AF_{tag}_ALL"]  = hl.or_missing(hl.is_defined(cs), cs.AF[0])
+        flat[f"AN_{tag}_ALL"]  = hl.or_missing(hl.is_defined(cs), cs.AN)
+        flat[f"AC_{tag}_ALL"]  = hl.or_missing(hl.is_defined(cs), cs.AC[1])
+
+
     # save to info field to export to vcf
     mt_filtered = mt_filtered.annotate_rows(
             info = mt_filtered.info.annotate(
                 ALL_p_value_hwe = mt_filtered.total.ALL_p_value_hwe,
                 ALL_p_value_excess_het = mt_filtered.total.ALL_p_value_excess_het,
+
+                # add variant stats based on multi-omics cohort
                 AF = hl.min(mt_filtered.info.AF),
                 AC = hl.min(mt_filtered.info.AC),
                 AN = mt_filtered.info.AN,
+                
+                # add variant AFs based on all of AoU 
+                AF_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AF_cs_all),
+                AN_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AN_cs_all),
+                AC_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AC_cs_all),
+                **flat
             )
-        )
+        ).drop("_af")
     # get rid of unneeded fields for matrix table save
     mt_filtered = mt_filtered.drop("variant_qc","total")
     
+
     # Write filtered matrix table to output checkpoint
     mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}.mt', overwrite=True)
 
@@ -90,6 +137,7 @@ if __name__ == "__main__":
     parser.add_argument("--MaxAlleleCount", required=True, help="Max Allele count threshold.")
     parser.add_argument("--BedFile", required=False, help="Bed file containing regions of interest, typically cis windows for genes")
     parser.add_argument("--AlleleNumberPercentage", required=True, help="Allele number percentage cutoff.")
+    parser.add_argument("--AncestryAssignments", required=True, help="File that contains ancestry assignments for initial matrix table")
     parser.add_argument("--OutputBucket", required=True, help="Path to output checkpoint MatrixTable.")
     parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")
     parser.add_argument("--CloudTmpdir", required=True, help="Temporary directory for spark/hail to work with.")
