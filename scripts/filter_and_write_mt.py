@@ -29,7 +29,7 @@ def main(args):
     mt = mt.annotate_cols(**ancestry_ht[mt.s])
 
     if args.BedFile:
-        regions = hl.import_bed(args.bed)
+        regions = hl.import_bed(args.BedFile)
         mt = mt.filter_intervals(regions)
 
     # Filter matrix table to samples in samples_ht
