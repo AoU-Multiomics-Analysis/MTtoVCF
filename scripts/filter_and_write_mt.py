@@ -28,7 +28,7 @@ def main(args):
     ancestry_ht = ancestry_ht.key_by(s=ancestry_ht.research_id)
     mt = mt.annotate_cols(**ancestry_ht[mt.s])
 
-    if args.bed:
+    if args.BedFile:
         regions = hl.import_bed(args.bed)
         mt = mt.filter_intervals(regions)
 
