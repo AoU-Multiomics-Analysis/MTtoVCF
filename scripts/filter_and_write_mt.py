@@ -69,7 +69,7 @@ def main(args):
     # for MAF calculation in larger AoU cohort
     mt_subset = mt.semi_join_rows(mt_filtered.rows())
     cs_by_anc = hl.agg.group_by(
-        mt_subset.ancestry_pred_group,
+        mt_subset.ancestry_pred_other,
         hl.agg.call_stats(mt_subset.GT, mt_subset.alleles)
     )
     cs_all = hl.agg.call_stats(mt_subset.GT,mt_subset.alleles)
@@ -82,7 +82,7 @@ def main(args):
         AN_by_anc = cs_by_anc.map_values(lambda cs: cs.AN),
         AC_by_anc = cs_by_anc.map_values(lambda cs: cs.AC),
     )
-    ancs = mt_subset.aggregate_cols(hl.agg.collect_as_set(mt_subset.ancestry_pred_group))
+    ancs = mt_subset.aggregate_cols(hl.agg.collect_as_set(mt_subset.ancestry_pred_other))
     ancs = sorted([a for a in ancs if a is not None])
 
     af_rows_ht = mt_subset.rows().select("AF", "AN", "AC", "cs_by_anc","AF_by_anc", "AN_by_anc", "AC_by_anc")
