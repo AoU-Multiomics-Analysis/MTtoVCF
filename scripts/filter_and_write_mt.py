@@ -69,7 +69,7 @@ def main(args):
     # for MAF calculation in larger AoU cohort
     mt_subset = mt.semi_join_rows(mt_filtered.rows())
     cs_by_anc = hl.agg.group_by(
-        mt_subset.ancestry_pred_other,
+        mt_subset.ancestry_pred_group,
         hl.agg.call_stats(mt_subset.GT, mt_subset.alleles)
     )
     cs_all = hl.agg.call_stats(mt_subset.GT,mt_subset.alleles)
@@ -77,24 +77,23 @@ def main(args):
         AF = cs_all.AF,
         AN = cs_all.AN,
         AC = cs_all.AC,
-        AF_by_anc = hl.dict(hl.map_values(cs_by_anc, lambda cs: cs.AF)),
-        AN_by_anc = hl.dict(hl.map_values(cs_by_anc, lambda cs: cs.AN)),
-        AC_by_anc = hl.dict(hl.map_values(cs_by_anc, lambda cs: cs.AC)),
+        cs_by_anc = cs_by_anc,
+        AF_by_anc = cs_by_anc.map_values(lambda cs: cs.AF),
+        AN_by_anc = cs_by_anc.map_values(lambda cs: cs.AN),
+        AC_by_anc = cs_by_anc.map_values(lambda cs: cs.AC),
     )
-    ancs = (
-        mt_subset.aggregate_cols(hl.agg.collect_as_set(mt_subset.ancestry_pred_group))
-    )
+    ancs = mt_subset.aggregate_cols(hl.agg.collect_as_set(mt_subset.ancestry_pred_group))
     ancs = sorted([a for a in ancs if a is not None])
 
-    af_rows_ht = mt_subset.rows().select("AF", "AN", "AC", "AF_by_anc", "AN_by_anc", "AC_by_anc")
+    af_rows_ht = mt_subset.rows().select("AF", "AN", "AC", "cs_by_anc","AF_by_anc", "AN_by_anc", "AC_by_anc")
     af_rows_ht = af_rows_ht.key_by('locus', 'alleles')
     mt_filtered = mt_filtered.annotate_rows(_af = af_rows_ht[mt_filtered.row_key])
     flat = {}
     for a in ancs:
         cs = mt_filtered._af.cs_by_anc.get(a)
-        tag = anc_map[a] if 'anc_map' in globals() else a  # use sanitized if you made it
+        tag = a  # use sanitized if you made it
 
-        flat[f"AF_{tag}_ALL"]  = hl.or_missing(hl.is_defined(cs), cs.AF[0])
+        flat[f"AF_{tag}_ALL"]  = hl.or_missing(hl.is_defined(cs), cs.AF[1])
         flat[f"AN_{tag}_ALL"]  = hl.or_missing(hl.is_defined(cs), cs.AN)
         flat[f"AC_{tag}_ALL"]  = hl.or_missing(hl.is_defined(cs), cs.AC[1])
 
@@ -111,9 +110,9 @@ def main(args):
                 AN = mt_filtered.info.AN,
                 
                 # add variant AFs based on all of AoU 
-                AF_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AF_cs_all),
-                AN_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AN_cs_all),
-                AC_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AC_cs_all),
+                AF_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AF[1]),
+                AN_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AN),
+                AC_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AC[1]),
                 **flat
             )
         ).drop("_af")
