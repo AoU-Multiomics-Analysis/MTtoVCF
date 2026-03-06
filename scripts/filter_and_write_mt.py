@@ -39,8 +39,12 @@ def main(args):
         bed = bed.annotate(
             start=hl.max(0, bed.start),
             end=hl.min(bed.end, lengths.get(bed.contig))
-        ).filter(hl.is_defined(lengths.get(bed.contig)) & (bed.start < bed.end))
-    
+        )
+
+        bed = bed.filter(
+            hl.is_defined(lengths.get(bed.contig)) & (bed.start < bed.end)
+        )
+            
         regions = bed.annotate(interval=hl.interval(
             hl.locus(bed.contig, bed.start + 1, reference_genome='GRCh38'),
             hl.locus(bed.contig, bed.end, reference_genome='GRCh38'),
