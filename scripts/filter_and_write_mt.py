@@ -29,9 +29,24 @@ def main(args):
     mt = mt.annotate_cols(**ancestry_ht[mt.s])
 
     if args.BedFile:
-        regions = hl.import_bed(args.BedFile)
-        #mt = mt.filter_intervals(regions)
+        bed = hl.import_table(args.BedFile, delimiter='\t', no_header=True, types={'f1': hl.tint32, 'f2': hl.tint32})
+        bed = bed.rename({'f0': 'contig', 'f1': 'start', 'f2': 'end'})
+        rg = hl.get_reference('GRCh38')
+        bed = bed.annotate(
+            contig=bed.contig,
+            start=hl.max(0, bed.start),
+            end=hl.min(bed.end, rg.lengths[bed.contig])  # clamp to contig length
+        ).filter(bed.start < bed.end)
+        
+        regions = bed.annotate(interval=hl.interval(
+            hl.locus(bed.contig, bed.start + 1, reference_genome='GRCh38'),  # BED start is 0-based -> +1
+            hl.locus(bed.contig, bed.end, reference_genome='GRCh38'),        # end is exclusive -> locus at end is fine
+            includes_start=True,
+            includes_end=False
+        )).key_by('interval')
+
         mt = mt.filter_rows(hl.is_defined(regions[mt.locus]))
+        
     # Filter matrix table to samples in samples_ht
     mt_filtered = mt.filter_cols(hl.is_defined(samples_ht[mt.s]))
     # Filter for biallelic
