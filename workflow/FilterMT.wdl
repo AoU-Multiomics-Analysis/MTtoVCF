@@ -31,7 +31,7 @@ workflow FilterMT {
     }
 
     output {
-        String FilteredMT = TaskFilterMT.FilteredMT
+        String PathVCF = TaskFilterMT.PathVCF
     }
 }
 
@@ -76,6 +76,6 @@ task TaskFilterMT {
     }
     
     output {
-        String FilteredMT = read_string('outpath.txt') 
+        String PathVCF = read_string('outpath.txt') 
     }
 }
