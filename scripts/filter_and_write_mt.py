@@ -142,13 +142,14 @@ def main(args):
     mt_filtered = mt_filtered.drop("variant_qc","total")
     
 
-    # Write filtered matrix table to output checkpoint
-    mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}.mt', overwrite=True)
-
-    hl.stop()
+    # Directly export to VCF
+    OutputFilePath = f'{args.OutputBucket}/{args.OutputPrefix}.vcf.bgz'
+    hl.export_vcf(mt_filtered, OutputFilePath)
 
     with open('outpath.txt', 'w') as file:
-        file.write(f'{args.OutputBucket}/{args.OutputPrefix}.mt')
+        file.write(OutputFilePath)
+
+    hl.stop()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Filter and write Hail MatrixTable with hard-coded Hail configuration.")
@@ -159,7 +160,7 @@ if __name__ == "__main__":
     parser.add_argument("--BedFile", required=False, help="Bed file containing regions of interest, typically cis windows for genes")
     parser.add_argument("--AlleleNumberPercentage", required=True, help="Allele number percentage cutoff.")
     parser.add_argument("--AncestryAssignments", required=True, help="File that contains ancestry assignments for initial matrix table")
-    parser.add_argument("--OutputBucket", required=True, help="Path to output checkpoint MatrixTable.")
+    parser.add_argument("--OutputBucket", required=True, help="Path to output VCF bucket.")
     parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")
     parser.add_argument("--CloudTmpdir", required=True, help="Temporary directory for spark/hail to work with.")
 
