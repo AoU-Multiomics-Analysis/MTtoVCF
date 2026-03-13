@@ -33,7 +33,8 @@ def main(args):
 
     # Parse the variant identifier (vid) into locus + alleles so we can join
     # with the matrix table.  Expected vid format: contig-position-ref-alt
-    vat_ht = vat_ht.annotate(_parts=vat_ht.vid.split('-'))
+    # Use maxsplit=3 so dashes inside allele strings are preserved.
+    vat_ht = vat_ht.annotate(_parts=vat_ht.vid.split('-', 4))
     vat_ht = vat_ht.annotate(
         locus=hl.locus(vat_ht._parts[0], hl.int32(vat_ht._parts[1]),
                         reference_genome='GRCh38'),
@@ -42,12 +43,12 @@ def main(args):
 
     # Discover cohort groups from column names.
     # Columns ending in _ac with matching _an and _af siblings define a group.
-    vat_fields = set(vat_ht.row_value.dtype)
+    vat_field_names = set(vat_ht.row_value.dtype.keys())
     groups = []
-    for field in sorted(vat_fields):
+    for field in sorted(vat_field_names):
         if field.endswith('_ac'):
             prefix = field[:-3]
-            if f'{prefix}_an' in vat_fields and f'{prefix}_af' in vat_fields:
+            if f'{prefix}_an' in vat_field_names and f'{prefix}_af' in vat_field_names:
                 groups.append(prefix)
 
     # Cast the discovered AC/AN/AF columns from strings to proper numeric types
