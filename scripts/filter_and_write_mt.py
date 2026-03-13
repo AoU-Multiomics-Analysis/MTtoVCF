@@ -29,22 +29,29 @@ def main(args):
     mt = mt.annotate_cols(**ancestry_ht[mt.s])
 
     if args.BedFile:
-        bed = hl.import_table(args.BedFile, delimiter='\t', no_header=True, types={'f1': hl.tint32, 'f2': hl.tint32})
+        bed = hl.import_table(args.BedFile, delimiter='\t', no_header=True,
+                              types={'f1': hl.tint32, 'f2': hl.tint32})
         bed = bed.rename({'f0': 'contig', 'f1': 'start', 'f2': 'end'})
+    
         rg = hl.get_reference('GRCh38')
+        lengths = hl.literal(rg.lengths)
+    
         bed = bed.annotate(
-            contig=bed.contig,
             start=hl.max(0, bed.start),
-            end=hl.min(bed.end, rg.lengths[bed.contig])  # clamp to contig length
-        ).filter(bed.start < bed.end)
-        
+            end=hl.min(bed.end, lengths.get(bed.contig))
+        )
+
+        bed = bed.filter(
+            hl.is_defined(lengths.get(bed.contig)) & (bed.start < bed.end)
+        )
+            
         regions = bed.annotate(interval=hl.interval(
-            hl.locus(bed.contig, bed.start + 1, reference_genome='GRCh38'),  # BED start is 0-based -> +1
-            hl.locus(bed.contig, bed.end, reference_genome='GRCh38'),        # end is exclusive -> locus at end is fine
+            hl.locus(bed.contig, bed.start + 1, reference_genome='GRCh38'),
+            hl.locus(bed.contig, bed.end, reference_genome='GRCh38'),
             includes_start=True,
             includes_end=False
         )).key_by('interval')
-
+    
         mt = mt.filter_rows(hl.is_defined(regions[mt.locus]))
         
     # Filter matrix table to samples in samples_ht
@@ -135,13 +142,14 @@ def main(args):
     mt_filtered = mt_filtered.drop("variant_qc","total")
     
 
-    # Write filtered matrix table to output checkpoint
-    mt_filtered.write(f'{args.OutputBucket}/{args.OutputPrefix}.mt', overwrite=True)
-
-    hl.stop()
+    # Directly export to VCF
+    OutputFilePath = f'{args.OutputBucket}/{args.OutputPrefix}.vcf.bgz'
+    hl.export_vcf(mt_filtered, OutputFilePath)
 
     with open('outpath.txt', 'w') as file:
-        file.write(f'{args.OutputBucket}/{args.OutputPrefix}.mt')
+        file.write(OutputFilePath)
+
+    hl.stop()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Filter and write Hail MatrixTable with hard-coded Hail configuration.")
@@ -152,7 +160,7 @@ if __name__ == "__main__":
     parser.add_argument("--BedFile", required=False, help="Bed file containing regions of interest, typically cis windows for genes")
     parser.add_argument("--AlleleNumberPercentage", required=True, help="Allele number percentage cutoff.")
     parser.add_argument("--AncestryAssignments", required=True, help="File that contains ancestry assignments for initial matrix table")
-    parser.add_argument("--OutputBucket", required=True, help="Path to output checkpoint MatrixTable.")
+    parser.add_argument("--OutputBucket", required=True, help="Path to output VCF bucket.")
     parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")
     parser.add_argument("--CloudTmpdir", required=True, help="Temporary directory for spark/hail to work with.")
 
