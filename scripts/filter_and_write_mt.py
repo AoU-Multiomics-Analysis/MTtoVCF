@@ -24,9 +24,41 @@ def main(args):
     # Load matrix table and samples table
     mt = hl.read_matrix_table(args.MatrixTable)
     samples_ht = hl.import_table(args.SampleList, key='research_id')
-    ancestry_ht = hl.import_table(args.AncestryAssignments,key = 'research_id',types={'research_id': hl.tstr},delimiter = "\t",missing = "NA")
-    ancestry_ht = ancestry_ht.key_by(s=ancestry_ht.research_id)
-    mt = mt.annotate_cols(**ancestry_ht[mt.s])
+
+    # Load pre-computed VAT Hail table for cohort-level AC/AN/AF annotations.
+    # This table is created from the AoU Variant Annotation Table (VAT) using
+    # the TSVtoHailTable workflow and contains per-ancestry and combined cohort
+    # allele counts, allele numbers, and allele frequencies.
+    vat_ht = hl.read_table(args.VATHailTable)
+
+    # Parse the variant identifier (vid) into locus + alleles so we can join
+    # with the matrix table.  Expected vid format: contig-position-ref-alt
+    # Use maxsplit=3 so dashes inside allele strings are preserved.
+    vat_ht = vat_ht.annotate(_parts=vat_ht.vid.split('-', 4))
+    vat_ht = vat_ht.annotate(
+        locus=hl.locus(vat_ht._parts[0], hl.int32(vat_ht._parts[1]),
+                        reference_genome='GRCh38'),
+        alleles=[vat_ht._parts[2], vat_ht._parts[3]]
+    )
+
+    # Discover cohort groups from column names.
+    # Columns ending in _ac with matching _an and _af siblings define a group.
+    vat_field_names = set(vat_ht.row_value.dtype.keys())
+    groups = []
+    for field in sorted(vat_field_names):
+        if field.endswith('_ac'):
+            prefix = field[:-3]
+            if f'{prefix}_an' in vat_field_names and f'{prefix}_af' in vat_field_names:
+                groups.append(prefix)
+
+    # Cast the discovered AC/AN/AF columns from strings to proper numeric types
+    cast_exprs = {}
+    for g in groups:
+        cast_exprs[f'{g}_ac'] = hl.int32(vat_ht[f'{g}_ac'])
+        cast_exprs[f'{g}_an'] = hl.int32(vat_ht[f'{g}_an'])
+        cast_exprs[f'{g}_af'] = hl.float64(vat_ht[f'{g}_af'])
+    vat_ht = vat_ht.select('locus', 'alleles', **cast_exprs)
+    vat_ht = vat_ht.key_by('locus', 'alleles')
 
     if args.BedFile:
         bed = hl.import_table(args.BedFile, delimiter='\t', no_header=True,
@@ -81,44 +113,20 @@ def main(args):
     mt_filtered = mt_filtered.filter_rows(mt_filtered.info.AN >= int(args.AlleleNumberPercentage)/100 * mt_filtered.count_cols() * 2)
     
     # filter by allele count
-    #mt_filtered = mt_filtered.filter_rows(hl.min(mt_filtered.info.AC) >= int(args.AlleleCount)) 
     mt_filtered = mt_filtered.filter_rows(
         (hl.min(mt_filtered.info.AC) >= int(args.MinAlleleCount)) &
         (hl.min(mt_filtered.info.AC) <= int(args.MaxAlleleCount))
     )
 
-    # filters superset mt to variants present in select samples
-    # for MAF calculation in larger AoU cohort
-    mt_subset = mt.semi_join_rows(mt_filtered.rows())
-    cs_by_anc = hl.agg.group_by(
-        mt_subset.ancestry_pred_other,
-        hl.agg.call_stats(mt_subset.GT, mt_subset.alleles)
-    )
-    cs_all = hl.agg.call_stats(mt_subset.GT,mt_subset.alleles)
-    mt_subset = mt_subset.annotate_rows(
-        AF = cs_all.AF,
-        AN = cs_all.AN,
-        AC = cs_all.AC,
-        cs_by_anc = cs_by_anc,
-        AF_by_anc = cs_by_anc.map_values(lambda cs: cs.AF),
-        AN_by_anc = cs_by_anc.map_values(lambda cs: cs.AN),
-        AC_by_anc = cs_by_anc.map_values(lambda cs: cs.AC),
-    )
-    ancs = mt_subset.aggregate_cols(hl.agg.collect_as_set(mt_subset.ancestry_pred_other))
-    ancs = sorted([a for a in ancs if a is not None])
+    # Join filtered MT with VAT table for cohort-level AC/AN/AF annotations
+    mt_filtered = mt_filtered.annotate_rows(_vat = vat_ht[mt_filtered.row_key])
 
-    af_rows_ht = mt_subset.rows().select("AF", "AN", "AC", "cs_by_anc","AF_by_anc", "AN_by_anc", "AC_by_anc")
-    af_rows_ht = af_rows_ht.key_by('locus', 'alleles')
-    mt_filtered = mt_filtered.annotate_rows(_af = af_rows_ht[mt_filtered.row_key])
-    flat = {}
-    for a in ancs:
-        cs = mt_filtered._af.cs_by_anc.get(a)
-        tag = a  # use sanitized if you made it
-
-        flat[f"AF_{tag}_ALL"]  = hl.or_missing(hl.is_defined(cs), cs.AF[1])
-        flat[f"AN_{tag}_ALL"]  = hl.or_missing(hl.is_defined(cs), cs.AN)
-        flat[f"AC_{tag}_ALL"]  = hl.or_missing(hl.is_defined(cs), cs.AC[1])
-
+    # Build per-group annotation fields from the VAT table
+    vat_annot = {}
+    for g in groups:
+        vat_annot[f'AF_{g}_ALL'] = mt_filtered._vat[f'{g}_af']
+        vat_annot[f'AN_{g}_ALL'] = mt_filtered._vat[f'{g}_an']
+        vat_annot[f'AC_{g}_ALL'] = mt_filtered._vat[f'{g}_ac']
 
     # save to info field to export to vcf
     mt_filtered = mt_filtered.annotate_rows(
@@ -130,14 +138,11 @@ def main(args):
                 AF = hl.min(mt_filtered.info.AF),
                 AC = hl.min(mt_filtered.info.AC),
                 AN = mt_filtered.info.AN,
-                
-                # add variant AFs based on all of AoU 
-                AF_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AF[1]),
-                AN_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AN),
-                AC_ALL = hl.or_missing(hl.is_defined(mt_filtered._af), mt_filtered._af.AC[1]),
-                **flat
+
+                # add per-group AC/AN/AF from VAT table
+                **vat_annot
             )
-        ).drop("_af")
+        ).drop("_vat")
     # get rid of unneeded fields for matrix table save
     mt_filtered = mt_filtered.drop("variant_qc","total")
     
@@ -159,7 +164,7 @@ if __name__ == "__main__":
     parser.add_argument("--MaxAlleleCount", required=True, help="Max Allele count threshold.")
     parser.add_argument("--BedFile", required=False, help="Bed file containing regions of interest, typically cis windows for genes")
     parser.add_argument("--AlleleNumberPercentage", required=True, help="Allele number percentage cutoff.")
-    parser.add_argument("--AncestryAssignments", required=True, help="File that contains ancestry assignments for initial matrix table")
+    parser.add_argument("--VATHailTable", required=True, help="Path to pre-computed Hail table from AoU VAT with per-ancestry and cohort AC/AN/AF columns")
     parser.add_argument("--OutputBucket", required=True, help="Path to output VCF bucket.")
     parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")
     parser.add_argument("--CloudTmpdir", required=True, help="Temporary directory for spark/hail to work with.")

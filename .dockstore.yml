@@ -9,5 +9,6 @@ workflows:
   - subclass: WDL
     primaryDescriptorPath: /main.wdl
     name: FilterMTAndExportToVCF
-  
-  
+  - subclass: WDL
+    primaryDescriptorPath: /workflow/TSVtoHailTable.wdl
+    name: TSVtoHailTable
