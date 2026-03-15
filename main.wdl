@@ -12,7 +12,7 @@ workflow FilterMTAndExportToVCF{
         String UriMatrixTable
         File SampleList
         File? BedFile
-        String AncestryAssignments
+        String VATHailTable
         Int MinAlleleCountThreshold = 5
         Int MaxAlleleCountThreshold = 10000000
         Int AlleleNumberPercentage = 95
@@ -35,7 +35,7 @@ workflow FilterMTAndExportToVCF{
             MinAlleleCountThreshold = MinAlleleCountThreshold,
             MaxAlleleCountThreshold = MaxAlleleCountThreshold,
             AlleleNumberPercentage = AlleleNumberPercentage,
-            AncestryAssignments = AncestryAssignments,
+            VATHailTable = VATHailTable,
             OutputBucket = OutputBucket,
             OutputPrefix = FullPrefix,
             CloudTmpdir = CloudTmpdir,
