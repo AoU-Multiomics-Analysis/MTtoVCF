@@ -34,10 +34,18 @@ def main(args):
     # Parse the variant identifier (vid) into locus + alleles so we can join
     # with the matrix table.  Expected vid format: contig-position-ref-alt
     # Use maxsplit=3 so dashes inside allele strings are preserved.
+    # The VAT may use contigs without the 'chr' prefix (e.g. '1' instead of
+    # 'chr1'), so add the prefix when it is missing to match GRCh38.
     vat_ht = vat_ht.annotate(_parts=vat_ht.vid.split('-', 4))
     vat_ht = vat_ht.annotate(
-        locus=hl.locus(vat_ht._parts[0], hl.int32(vat_ht._parts[1]),
-                        reference_genome='GRCh38'),
+        locus=hl.locus(
+            hl.if_else(
+                vat_ht._parts[0].startswith('chr'),
+                vat_ht._parts[0],
+                'chr' + vat_ht._parts[0]
+            ),
+            hl.int32(vat_ht._parts[1]),
+            reference_genome='GRCh38'),
         alleles=[vat_ht._parts[2], vat_ht._parts[3]]
     )
 
