@@ -17,9 +17,9 @@ def main(args):
         'spark.default.parallelism': '100',
         'spark.memory.fraction': '0.8',
         'spark.memory.storageFraction': '0.2'
-    },
-    default_reference='GRCh38'
+    }
     )
+    hl.default_reference('GRCh38')
 
     # Load matrix table and samples table
     mt = hl.read_matrix_table(args.MatrixTable)
