@@ -51,9 +51,9 @@ if __name__ == "__main__":
             'spark.default.parallelism': '100',
             'spark.memory.fraction': '0.8',
             'spark.memory.storageFraction': '0.2',
-        },
-        default_reference='GRCh38'
+        }
     )
+    hl.default_reference('GRCh38')
     
     print("Spark local directories:", os.getenv("SPARK_LOCAL_DIRS"), flush=True)
     print("Disk usage:", flush=True)
