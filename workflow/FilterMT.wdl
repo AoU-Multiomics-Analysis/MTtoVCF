@@ -12,7 +12,7 @@ workflow FilterMT {
         String CloudTmpdir
         String Branch = "main"
         File? BedFile
-        String AncestryAssignments
+        String VATHailTable
     }
     
     call TaskFilterMT {
@@ -22,7 +22,7 @@ workflow FilterMT {
             MinAlleleCountThreshold = MinAlleleCountThreshold,
             MaxAlleleCountThreshold = MaxAlleleCountThreshold,
             AlleleNumberPercentage = AlleleNumberPercentage,
-            AncestryAssignments = AncestryAssignments,
+            VATHailTable = VATHailTable,
             OutputBucket = OutputBucket,
             OutputPrefix = OutputPrefix,
             CloudTmpdir = CloudTmpdir,
@@ -31,7 +31,7 @@ workflow FilterMT {
     }
 
     output {
-        String FilteredMT = TaskFilterMT.FilteredMT
+        String PathVCF = TaskFilterMT.PathVCF
     }
 }
 
@@ -40,7 +40,7 @@ task TaskFilterMT {
         String UriMatrixTable
         File SampleList
         File? BedFile
-        String AncestryAssignments
+        String VATHailTable
         Int MinAlleleCountThreshold
         Int MaxAlleleCountThreshold
         Int AlleleNumberPercentage
@@ -57,7 +57,7 @@ task TaskFilterMT {
         # and also generates outpath.txt upon completion 
         # of writing VCF 
         python3 /filter_and_write_mt.py   ~{if defined(BedFile) then "--BedFile " + BedFile else ""}  \
-            --AncestryAssignments ~{AncestryAssignments} \
+            --VATHailTable ~{VATHailTable} \
             --MatrixTable ~{UriMatrixTable} \
             --SampleList ~{SampleList} \
             --MinAlleleCount ~{MinAlleleCountThreshold} \
@@ -76,6 +76,6 @@ task TaskFilterMT {
     }
     
     output {
-        String FilteredMT = read_string('outpath.txt') 
+        String PathVCF = read_string('outpath.txt') 
     }
 }
