@@ -59,12 +59,14 @@ def main(args):
             if f'{prefix}_an' in vat_field_names and f'{prefix}_af' in vat_field_names:
                 groups.append(prefix)
 
-    # Cast the discovered AC/AN/AF columns from strings to proper numeric types
+    # Cast the discovered AC/AN/AF columns from strings to proper numeric types.
+    # Use hl.or_missing to gracefully handle empty strings (which cannot be
+    # parsed as numbers) by converting them to missing values instead.
     cast_exprs = {}
     for g in groups:
-        cast_exprs[f'{g}_ac'] = hl.int32(vat_ht[f'{g}_ac'])
-        cast_exprs[f'{g}_an'] = hl.int32(vat_ht[f'{g}_an'])
-        cast_exprs[f'{g}_af'] = hl.float64(vat_ht[f'{g}_af'])
+        cast_exprs[f'{g}_ac'] = hl.or_missing(vat_ht[f'{g}_ac'] != '', hl.int32(vat_ht[f'{g}_ac']))
+        cast_exprs[f'{g}_an'] = hl.or_missing(vat_ht[f'{g}_an'] != '', hl.int32(vat_ht[f'{g}_an']))
+        cast_exprs[f'{g}_af'] = hl.or_missing(vat_ht[f'{g}_af'] != '', hl.float64(vat_ht[f'{g}_af']))
     vat_ht = vat_ht.select('locus', 'alleles', **cast_exprs)
     vat_ht = vat_ht.key_by('locus', 'alleles')
 
