@@ -19,9 +19,9 @@ def main(args):
             'spark.default.parallelism': '100',
             'spark.memory.fraction': '0.8',
             'spark.memory.storageFraction': '0.2'
-        }
+        },
+        default_reference='GRCh38'
     )
-    hl.default_reference('GRCh38')
 
     print(f'Streaming TSV from: {args.InputPath}', flush=True)
     print("Disk usage:", flush=True)
