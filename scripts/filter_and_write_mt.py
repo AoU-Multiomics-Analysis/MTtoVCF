@@ -25,10 +25,9 @@ def main(args):
     mt = hl.read_matrix_table(args.MatrixTable)
     samples_ht = hl.import_table(args.SampleList, key='research_id')
 
-    # Load pre-computed VAT Hail table for cohort-level AC/AN/AF annotations.
+    # Load pre-computed VAT Hail table for annotation.
     # This table is created from the AoU Variant Annotation Table (VAT) using
-    # the TSVtoHailTable workflow and contains per-ancestry and combined cohort
-    # allele counts, allele numbers, and allele frequencies.
+    # the TSVtoHailTable workflow.
     vat_ht = hl.read_table(args.VATHailTable)
 
     # Parse the variant identifier (vid) into locus + alleles so we can join
@@ -49,25 +48,50 @@ def main(args):
         alleles=[vat_ht._parts[2], vat_ht._parts[3]]
     )
 
-    # Discover cohort groups from column names.
-    # Columns ending in _ac with matching _an and _af siblings define a group.
-    vat_field_names = set(vat_ht.row_value.dtype.keys())
-    groups = []
-    for field in sorted(vat_field_names):
-        if field.endswith('_ac'):
-            prefix = field[:-3]
-            if f'{prefix}_an' in vat_field_names and f'{prefix}_af' in vat_field_names:
-                groups.append(prefix)
+    # Fixed set of VAT fields to carry forward as annotations.
+    # All VAT columns arrive as strings (imported from TSV); the helpers below
+    # cast each value to the appropriate type and convert empty strings to
+    # Hail missing so that VCF output renders them as '.' rather than ''.
+    def _cast_to_int(expr):
+        return hl.or_missing(expr != '', hl.int32(expr))
 
-    # Cast the discovered AC/AN/AF columns from strings to proper numeric types.
-    # Use hl.or_missing to gracefully handle empty strings (which cannot be
-    # parsed as numbers) by converting them to missing values instead.
-    cast_exprs = {}
-    for g in groups:
-        cast_exprs[f'{g}_ac'] = hl.or_missing(vat_ht[f'{g}_ac'] != '', hl.int32(vat_ht[f'{g}_ac']))
-        cast_exprs[f'{g}_an'] = hl.or_missing(vat_ht[f'{g}_an'] != '', hl.int32(vat_ht[f'{g}_an']))
-        cast_exprs[f'{g}_af'] = hl.or_missing(vat_ht[f'{g}_af'] != '', hl.float64(vat_ht[f'{g}_af']))
-    vat_ht = vat_ht.select('locus', 'alleles', **cast_exprs)
+    def _cast_to_float(expr):
+        return hl.or_missing(expr != '', hl.float64(expr))
+
+    def _cast_to_str(expr):
+        return hl.or_missing(expr != '', expr)
+
+    vat_ht = vat_ht.select(
+        'locus',
+        'alleles',
+        # GVS population frequencies
+        gvs_all_ac=_cast_to_int(vat_ht.gvs_all_ac),
+        gvs_all_an=_cast_to_int(vat_ht.gvs_all_an),
+        gvs_all_af=_cast_to_float(vat_ht.gvs_all_af),
+        gvs_max_ac=_cast_to_int(vat_ht.gvs_max_ac),
+        gvs_max_an=_cast_to_int(vat_ht.gvs_max_an),
+        gvs_max_af=_cast_to_float(vat_ht.gvs_max_af),
+        gvs_max_subpop=_cast_to_str(vat_ht.gvs_max_subpop),
+        # gnomAD population frequencies
+        gnomad_all_ac=_cast_to_int(vat_ht.gnomad_all_ac),
+        gnomad_all_an=_cast_to_int(vat_ht.gnomad_all_an),
+        gnomad_all_af=_cast_to_float(vat_ht.gnomad_all_af),
+        gnomad_max_ac=_cast_to_int(vat_ht.gnomad_max_ac),
+        gnomad_max_an=_cast_to_int(vat_ht.gnomad_max_an),
+        gnomad_max_af=_cast_to_float(vat_ht.gnomad_max_af),
+        gnomad_max_subpop=_cast_to_str(vat_ht.gnomad_max_subpop),
+        # Clinical / functional annotations
+        clinvar_classification=_cast_to_str(vat_ht.clinvar_classification),
+        clinvar_phenotype=_cast_to_str(vat_ht.clinvar_phenotype),
+        omim_phenotypes_id=_cast_to_str(vat_ht.omim_phenotypes_id),
+        consequence=_cast_to_str(vat_ht.consequence),
+        revel=_cast_to_float(vat_ht.revel),
+        # SpliceAI scores
+        splice_ai_acceptor_gain_score=_cast_to_float(vat_ht.splice_ai_acceptor_gain_score),
+        splice_ai_acceptor_loss_score=_cast_to_float(vat_ht.splice_ai_acceptor_loss_score),
+        splice_ai_donor_gain_score=_cast_to_float(vat_ht.splice_ai_donor_gain_score),
+        splice_ai_donor_loss_score=_cast_to_float(vat_ht.splice_ai_donor_loss_score),
+    )
     vat_ht = vat_ht.key_by('locus', 'alleles')
 
     if args.BedFile:
@@ -128,16 +152,8 @@ def main(args):
         (hl.min(mt_filtered.info.AC) <= int(args.MaxAlleleCount))
     )
 
-    # Join filtered MT with VAT table for cohort-level AC/AN/AF annotations
+    # Join filtered MT with VAT table for annotations
     mt_filtered = mt_filtered.annotate_rows(_vat = vat_ht[mt_filtered.row_key])
-
-    # Build per-group annotation fields from the VAT table, using the original
-    # column names from the VAT schema as-is.
-    vat_annot = {}
-    for g in groups:
-        vat_annot[f'{g}_af'] = mt_filtered._vat[f'{g}_af']
-        vat_annot[f'{g}_an'] = mt_filtered._vat[f'{g}_an']
-        vat_annot[f'{g}_ac'] = mt_filtered._vat[f'{g}_ac']
 
     # save to info field to export to vcf
     mt_filtered = mt_filtered.annotate_rows(
@@ -150,8 +166,36 @@ def main(args):
                 AC = hl.min(mt_filtered.info.AC),
                 AN = mt_filtered.info.AN,
 
-                # add per-group AC/AN/AF from VAT table
-                **vat_annot
+                # GVS population frequencies from VAT
+                gvs_all_ac=mt_filtered._vat.gvs_all_ac,
+                gvs_all_an=mt_filtered._vat.gvs_all_an,
+                gvs_all_af=mt_filtered._vat.gvs_all_af,
+                gvs_max_ac=mt_filtered._vat.gvs_max_ac,
+                gvs_max_an=mt_filtered._vat.gvs_max_an,
+                gvs_max_af=mt_filtered._vat.gvs_max_af,
+                gvs_max_subpop=mt_filtered._vat.gvs_max_subpop,
+
+                # gnomAD population frequencies from VAT
+                gnomad_all_ac=mt_filtered._vat.gnomad_all_ac,
+                gnomad_all_an=mt_filtered._vat.gnomad_all_an,
+                gnomad_all_af=mt_filtered._vat.gnomad_all_af,
+                gnomad_max_ac=mt_filtered._vat.gnomad_max_ac,
+                gnomad_max_an=mt_filtered._vat.gnomad_max_an,
+                gnomad_max_af=mt_filtered._vat.gnomad_max_af,
+                gnomad_max_subpop=mt_filtered._vat.gnomad_max_subpop,
+
+                # Clinical / functional annotations from VAT
+                clinvar_classification=mt_filtered._vat.clinvar_classification,
+                clinvar_phenotype=mt_filtered._vat.clinvar_phenotype,
+                omim_phenotypes_id=mt_filtered._vat.omim_phenotypes_id,
+                consequence=mt_filtered._vat.consequence,
+                revel=mt_filtered._vat.revel,
+
+                # SpliceAI scores from VAT
+                splice_ai_acceptor_gain_score=mt_filtered._vat.splice_ai_acceptor_gain_score,
+                splice_ai_acceptor_loss_score=mt_filtered._vat.splice_ai_acceptor_loss_score,
+                splice_ai_donor_gain_score=mt_filtered._vat.splice_ai_donor_gain_score,
+                splice_ai_donor_loss_score=mt_filtered._vat.splice_ai_donor_loss_score,
             )
         ).drop("_vat")
     # get rid of unneeded fields for matrix table save
