@@ -131,12 +131,13 @@ def main(args):
     # Join filtered MT with VAT table for cohort-level AC/AN/AF annotations
     mt_filtered = mt_filtered.annotate_rows(_vat = vat_ht[mt_filtered.row_key])
 
-    # Build per-group annotation fields from the VAT table
+    # Build per-group annotation fields from the VAT table, using the original
+    # column names from the VAT schema as-is.
     vat_annot = {}
     for g in groups:
-        vat_annot[f'AF_{g}_ALL'] = mt_filtered._vat[f'{g}_af']
-        vat_annot[f'AN_{g}_ALL'] = mt_filtered._vat[f'{g}_an']
-        vat_annot[f'AC_{g}_ALL'] = mt_filtered._vat[f'{g}_ac']
+        vat_annot[f'{g}_af'] = mt_filtered._vat[f'{g}_af']
+        vat_annot[f'{g}_an'] = mt_filtered._vat[f'{g}_an']
+        vat_annot[f'{g}_ac'] = mt_filtered._vat[f'{g}_ac']
 
     # save to info field to export to vcf
     mt_filtered = mt_filtered.annotate_rows(
