@@ -86,11 +86,15 @@ def main(args):
         omim_phenotypes_id=_cast_to_str(vat_ht.omim_phenotypes_id),
         consequence=_cast_to_str(vat_ht.consequence),
         revel=_cast_to_float(vat_ht.revel),
-        # SpliceAI scores
+        # SpliceAI scores and distances
         splice_ai_acceptor_gain_score=_cast_to_float(vat_ht.splice_ai_acceptor_gain_score),
         splice_ai_acceptor_loss_score=_cast_to_float(vat_ht.splice_ai_acceptor_loss_score),
         splice_ai_donor_gain_score=_cast_to_float(vat_ht.splice_ai_donor_gain_score),
         splice_ai_donor_loss_score=_cast_to_float(vat_ht.splice_ai_donor_loss_score),
+        splice_ai_acceptor_gain_distance=_cast_to_int(vat_ht.splice_ai_acceptor_gain_distance),
+        splice_ai_acceptor_loss_distance=_cast_to_int(vat_ht.splice_ai_acceptor_loss_distance),
+        splice_ai_donor_gain_distance=_cast_to_int(vat_ht.splice_ai_donor_gain_distance),
+        splice_ai_donor_loss_distance=_cast_to_int(vat_ht.splice_ai_donor_loss_distance),
     )
     vat_ht = vat_ht.key_by('locus', 'alleles')
 
@@ -191,11 +195,15 @@ def main(args):
                 consequence=mt_filtered._vat.consequence,
                 revel=mt_filtered._vat.revel,
 
-                # SpliceAI scores from VAT
+                # SpliceAI scores and distances from VAT
                 splice_ai_acceptor_gain_score=mt_filtered._vat.splice_ai_acceptor_gain_score,
                 splice_ai_acceptor_loss_score=mt_filtered._vat.splice_ai_acceptor_loss_score,
                 splice_ai_donor_gain_score=mt_filtered._vat.splice_ai_donor_gain_score,
                 splice_ai_donor_loss_score=mt_filtered._vat.splice_ai_donor_loss_score,
+                splice_ai_acceptor_gain_distance=mt_filtered._vat.splice_ai_acceptor_gain_distance,
+                splice_ai_acceptor_loss_distance=mt_filtered._vat.splice_ai_acceptor_loss_distance,
+                splice_ai_donor_gain_distance=mt_filtered._vat.splice_ai_donor_gain_distance,
+                splice_ai_donor_loss_distance=mt_filtered._vat.splice_ai_donor_loss_distance,
             )
         ).drop("_vat")
     # get rid of unneeded fields for matrix table save
