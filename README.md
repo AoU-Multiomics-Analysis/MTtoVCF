@@ -45,8 +45,8 @@ This is the main, all-in-one workflow. It filters the matrix table, annotates va
 
 | Field | Description |
 |---|---|
-| `gvs_all_ac` / `gvs_all_an` / `gvs_all_af` | GVS cohort-wide AC/AN/AF |
-| `gvs_max_ac` / `gvs_max_an` / `gvs_max_af` / `gvs_max_subpop` | GVS max-subpopulation AC/AN/AF and subpop label |
+| `gvs_all_ac` / `gvs_all_an` / `gvs_all_af` | AoU cohort-wide AC/AN/AF |
+| `gvs_max_ac` / `gvs_max_an` / `gvs_max_af` / `gvs_max_subpop` | AoU max-subpopulation AC/AN/AF and subpop label |
 | `gnomad_all_ac` / `gnomad_all_an` / `gnomad_all_af` | gnomAD cohort-wide AC/AN/AF |
 | `gnomad_max_ac` / `gnomad_max_an` / `gnomad_max_af` / `gnomad_max_subpop` | gnomAD max-subpopulation AC/AN/AF and subpop label |
 | `clinvar_classification` | ClinVar clinical significance |
@@ -101,7 +101,3 @@ This workflow takes a pre-existing matrix table and exports it directly to a VCF
 **Output:** A bgzipped VCF (`<OutputPrefix>.vcf.bgz`) written to `<OutputBucket>`.
 
 ---
-
-## ComputeGeneticPCs.wdl
-
-Takes a VCF and computes genetic principal components (PCs) using plink2. This workflow is a standalone utility and is not part of the main filter/export pipeline. It is not currently included in this repository.
