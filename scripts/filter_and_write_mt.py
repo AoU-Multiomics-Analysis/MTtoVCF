@@ -76,13 +76,13 @@ def main(args):
         gvs_max_subpop=_cast_to_str(vat_ht.gvs_max_subpop),
     
         # GVS subpopulation frequencies
-        gvs_afr_af=_cast_to_float(vat_ht.gvs_afr_af)
-        gvs_amr_af=_cast_to_float(vat_ht.gvs_amr_af)
-        gvs_eas_af=_cast_to_float(vat_ht.gvs_eas_af)
-        gvs_eur_af=_cast_to_float(vat_ht.gvs_eur_af)
-        gvs_mid_af=_cast_to_float(vat_ht.gvs_mid_af)
-        gvs_sas_af=_cast_to_float(vat_ht.gvs_sas_af)
-        gvs_oth_af=_cast_to_float(vat_ht.gvs_oth_af)
+        gvs_afr_af=_cast_to_float(vat_ht.gvs_afr_af),
+        gvs_amr_af=_cast_to_float(vat_ht.gvs_amr_af),
+        gvs_eas_af=_cast_to_float(vat_ht.gvs_eas_af),
+        gvs_eur_af=_cast_to_float(vat_ht.gvs_eur_af),
+        gvs_mid_af=_cast_to_float(vat_ht.gvs_mid_af),
+        gvs_sas_af=_cast_to_float(vat_ht.gvs_sas_af),
+        gvs_oth_af=_cast_to_float(vat_ht.gvs_oth_af),
 
         # gnomAD population frequencies
         gnomad_all_ac=_cast_to_int(vat_ht.gnomad_all_ac),
@@ -99,8 +99,8 @@ def main(args):
         gene_omim_id=_cast_to_str(vat_ht.gene_omim_id)
         consequence=_cast_to_str(vat_ht.consequence),
         revel=_cast_to_float(vat_ht.revel),
-        aa_change=_cast_to_str(vat_ht.aa_change)
-        rsid=_cast_to_str(vat_ht.dbsnp_rsid)
+        aa_change=_cast_to_str(vat_ht.aa_change),
+        rsid=_cast_to_str(vat_ht.dbsnp_rsid),
         # SpliceAI scores and distances
         splice_ai_acceptor_gain_score=_cast_to_float(vat_ht.splice_ai_acceptor_gain_score),
         splice_ai_acceptor_loss_score=_cast_to_float(vat_ht.splice_ai_acceptor_loss_score),
@@ -109,7 +109,7 @@ def main(args):
         splice_ai_acceptor_gain_distance=_cast_to_int(vat_ht.splice_ai_acceptor_gain_distance),
         splice_ai_acceptor_loss_distance=_cast_to_int(vat_ht.splice_ai_acceptor_loss_distance),
         splice_ai_donor_gain_distance=_cast_to_int(vat_ht.splice_ai_donor_gain_distance),
-        splice_ai_donor_loss_distance=_cast_to_int(vat_ht.splice_ai_donor_loss_distance),
+        splice_ai_donor_loss_distance=_cast_to_int(vat_ht.splice_ai_donor_loss_distance)
     )
     vat_ht = vat_ht.key_by('locus', 'alleles')
 
