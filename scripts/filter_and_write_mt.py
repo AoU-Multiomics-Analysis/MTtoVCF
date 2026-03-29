@@ -72,6 +72,16 @@ def main(args):
         gvs_max_an=_cast_to_int(vat_ht.gvs_max_an),
         gvs_max_af=_cast_to_float(vat_ht.gvs_max_af),
         gvs_max_subpop=_cast_to_str(vat_ht.gvs_max_subpop),
+    
+        # GVS subpopulation frequencies
+        gvs_afr_af=_cast_to_float(vat_ht.gvs_afr_af)
+        gvs_amr_af=_cast_to_float(vat_ht.gvs_amr_af)
+        gvs_eas_af=_cast_to_float(vat_ht.gvs_eas_af)
+        gvs_eur_af=_cast_to_float(vat_ht.gvs_eur_af)
+        gvs_mid_af=_cast_to_float(vat_ht.gvs_mid_af)
+        gvs_sas_af=_cast_to_float(vat_ht.gvs_sas_af)
+        gvs_oth_af=_cast_to_float(vat_ht.gvs_oth_af)
+
         # gnomAD population frequencies
         gnomad_all_ac=_cast_to_int(vat_ht.gnomad_all_ac),
         gnomad_all_an=_cast_to_int(vat_ht.gnomad_all_an),
@@ -84,8 +94,11 @@ def main(args):
         clinvar_classification=_cast_to_str(vat_ht.clinvar_classification),
         clinvar_phenotype=_cast_to_str(vat_ht.clinvar_phenotype),
         omim_phenotypes_id=_cast_to_str(vat_ht.omim_phenotypes_id),
+        gene_omim_id=_cast_to_str(vat_ht.gene_omim_id)
         consequence=_cast_to_str(vat_ht.consequence),
         revel=_cast_to_float(vat_ht.revel),
+        aa_change=_cast_to_str(vat_ht.aa_change)
+        rsid=_cast_to_str(vat_ht.dbsnp_rsid)
         # SpliceAI scores and distances
         splice_ai_acceptor_gain_score=_cast_to_float(vat_ht.splice_ai_acceptor_gain_score),
         splice_ai_acceptor_loss_score=_cast_to_float(vat_ht.splice_ai_acceptor_loss_score),
@@ -178,6 +191,17 @@ def main(args):
                 gvs_max_an=mt_filtered._vat.gvs_max_an,
                 gvs_max_af=mt_filtered._vat.gvs_max_af,
                 gvs_max_subpop=mt_filtered._vat.gvs_max_subpop,
+                
+                # GVS subpopulations from VAT
+                gvs_afr_af=_mt_filtered._vat.gvs_afr_af,
+                gvs_amr_af=_mt_filtered._vat.gvs_amr_af,
+                gvs_eas_af=_mt_filtered._vat.gvs_eas_af,
+                gvs_eur_af=_mt_filtered._vat.gvs_eur_af,
+                gvs_mid_af=_mt_filtered._vat.gvs_mid_af,
+                gvs_sas_af=_mt_filtered._vat.gvs_sas_af,
+                gvs_oth_af=_mt_filtered._vat.gvs_oth_af,
+
+
 
                 # gnomAD population frequencies from VAT
                 gnomad_all_ac=mt_filtered._vat.gnomad_all_ac,
@@ -192,8 +216,11 @@ def main(args):
                 clinvar_classification=mt_filtered._vat.clinvar_classification,
                 clinvar_phenotype=mt_filtered._vat.clinvar_phenotype,
                 omim_phenotypes_id=mt_filtered._vat.omim_phenotypes_id,
+                gene_omim_id=mt_filtered._vat.gene_omim_id,
                 consequence=mt_filtered._vat.consequence,
                 revel=mt_filtered._vat.revel,
+                aa_change=mt_filtered._vat.aa_change,
+                rsid=mt_filtered._vat.rsid,
 
                 # SpliceAI scores and distances from VAT
                 splice_ai_acceptor_gain_score=mt_filtered._vat.splice_ai_acceptor_gain_score,
