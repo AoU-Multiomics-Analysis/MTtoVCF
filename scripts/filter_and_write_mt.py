@@ -2,7 +2,7 @@ import hail as hl
 import argparse
 
 
-
+# init
 def main(args):
     # Initialize Hail with hard-coded configuration
     hl.init(
