@@ -1,12 +1,6 @@
 import hail as hl
 import argparse
 
-def sanitize_info(expr):
-    expr = hl.or_missing(expr != '', expr)
-    expr = hl.if_else(hl.is_defined(expr), expr.replace(';', '|'), expr)
-    expr = hl.if_else(hl.is_defined(expr), expr.replace('=', ':'), expr)
-    return expr
-
 
 # init
 def main(args):
@@ -68,6 +62,12 @@ def main(args):
 
     def _cast_to_str(expr):
         return hl.or_missing(expr != '', expr)
+    def sanitize_info(expr):
+        expr = hl.or_missing(expr != '', expr)
+        expr = hl.if_else(hl.is_defined(expr), expr.replace(';', '|'), expr)
+        expr = hl.if_else(hl.is_defined(expr), expr.replace('=', ':'), expr)
+        return expr
+
 
     vat_ht = vat_ht.select(
         'locus',
@@ -101,7 +101,7 @@ def main(args):
         gnomad_max_subpop=_cast_to_str(vat_ht.gnomad_max_subpop),
         # Clinical / functional annotations
         clinvar_classification=_cast_to_str(vat_ht.clinvar_classification),
-        clinvar_phenotype=sanitize_info(mt_filtered._vat.clinvar_phenotype), 
+        clinvar_phenotype=sanitize_info(vat_ht.clinvar_phenotype), 
         omim_phenotypes_id=_cast_to_str(vat_ht.omim_phenotypes_id),
         gene_omim_id=_cast_to_str(vat_ht.gene_omim_id),
         consequence=_cast_to_str(vat_ht.consequence),
@@ -221,7 +221,7 @@ def main(args):
 
                 # Clinical / functional annotations from VAT
                 clinvar_classification=mt_filtered._vat.clinvar_classification,
-                clinvar_phenotype=sanitize_info(mt_filtered._vat.clinvar_phenotype), 
+                clinvar_phenotype=mt_filtered._vat.clinvar_phenotype, 
                 omim_phenotypes_id=mt_filtered._vat.omim_phenotypes_id,
                 gene_omim_id=mt_filtered._vat.gene_omim_id,
                 consequence=mt_filtered._vat.consequence,
