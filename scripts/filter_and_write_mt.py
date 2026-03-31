@@ -95,6 +95,7 @@ def main(args):
         gnomad_all_an=_cast_to_int(vat_ht.gnomad_all_an),
         gnomad_all_af=_cast_to_float(vat_ht.gnomad_all_af),
         gnomad_max_ac=_cast_to_int(vat_ht.gnomad_max_ac),
+        clinvar_phenotype=_cast_to_str(vat_ht.clinvar_phenotype),
         gnomad_max_an=_cast_to_int(vat_ht.gnomad_max_an),
         gnomad_max_af=_cast_to_float(vat_ht.gnomad_max_af),
         gnomad_max_subpop=_cast_to_str(vat_ht.gnomad_max_subpop),
@@ -220,7 +221,7 @@ def main(args):
 
                 # Clinical / functional annotations from VAT
                 clinvar_classification=mt_filtered._vat.clinvar_classification,
-                clinvar_phenotype=mt_filtered._vat.clinvar_phenotype,
+                clinvar_phenotype=sanitize_info(mt_filtered._vat.clinvar_phenotype), 
                 omim_phenotypes_id=mt_filtered._vat.omim_phenotypes_id,
                 gene_omim_id=mt_filtered._vat.gene_omim_id,
                 consequence=mt_filtered._vat.consequence,
