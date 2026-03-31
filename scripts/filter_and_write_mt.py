@@ -1,6 +1,12 @@
 import hail as hl
 import argparse
 
+def sanitize_info(expr):
+    expr = hl.or_missing(expr != '', expr)
+    expr = hl.if_else(hl.is_defined(expr), expr.replace(';', '|'), expr)
+    expr = hl.if_else(hl.is_defined(expr), expr.replace('=', ':'), expr)
+    return expr
+
 
 # init
 def main(args):
@@ -94,9 +100,9 @@ def main(args):
         gnomad_max_subpop=_cast_to_str(vat_ht.gnomad_max_subpop),
         # Clinical / functional annotations
         clinvar_classification=_cast_to_str(vat_ht.clinvar_classification),
-        clinvar_phenotype=_cast_to_str(vat_ht.clinvar_phenotype),
+        clinvar_phenotype=sanitize_info(mt_filtered._vat.clinvar_phenotype), 
         omim_phenotypes_id=_cast_to_str(vat_ht.omim_phenotypes_id),
-        gene_omim_id=_cast_to_str(vat_ht.gene_omim_id)
+        gene_omim_id=_cast_to_str(vat_ht.gene_omim_id),
         consequence=_cast_to_str(vat_ht.consequence),
         revel=_cast_to_float(vat_ht.revel),
         aa_change=_cast_to_str(vat_ht.aa_change),
@@ -195,15 +201,13 @@ def main(args):
                 gvs_max_subpop=mt_filtered._vat.gvs_max_subpop,
                 
                 # GVS subpopulations from VAT
-                gvs_afr_af=_mt_filtered._vat.gvs_afr_af,
-                gvs_amr_af=_mt_filtered._vat.gvs_amr_af,
-                gvs_eas_af=_mt_filtered._vat.gvs_eas_af,
-                gvs_eur_af=_mt_filtered._vat.gvs_eur_af,
-                gvs_mid_af=_mt_filtered._vat.gvs_mid_af,
-                gvs_sas_af=_mt_filtered._vat.gvs_sas_af,
-                gvs_oth_af=_mt_filtered._vat.gvs_oth_af,
-
-
+                gvs_afr_af=mt_filtered._vat.gvs_afr_af,
+                gvs_amr_af=mt_filtered._vat.gvs_amr_af,
+                gvs_eas_af=mt_filtered._vat.gvs_eas_af,
+                gvs_eur_af=mt_filtered._vat.gvs_eur_af,
+                gvs_mid_af=mt_filtered._vat.gvs_mid_af,
+                gvs_sas_af=mt_filtered._vat.gvs_sas_af,
+                gvs_oth_af=mt_filtered._vat.gvs_oth_af,
 
                 # gnomAD population frequencies from VAT
                 gnomad_all_ac=mt_filtered._vat.gnomad_all_ac,
