@@ -179,7 +179,87 @@ def main(args):
 
     # Join filtered MT with VAT table for annotations
     mt_filtered = mt_filtered.annotate_rows(_vat = vat_ht[mt_filtered.row_key])
+    # Create flattened row table for annotation export
+    annotations_ht = mt_filtered.rows()
 
+    annotations_ht = annotations_ht.annotate(
+        chrom = annotations_ht.locus.contig,
+        pos = annotations_ht.locus.position,
+        ref = annotations_ht.alleles[0],
+        alt = annotations_ht.alleles[1]
+    )
+    
+    # export annotations to tsv
+    annotations_ht = annotations_ht.select(
+
+        # Variant identity
+        chrom = annotations_ht.chrom,
+        pos = annotations_ht.pos,
+        ref = annotations_ht.ref,
+        alt = annotations_ht.alt,
+        rsid = annotations_ht._vat.rsid,
+
+        # Cohort allele statistics
+        AF = hl.min(annotations_ht.info.AF),
+        AC = hl.min(annotations_ht.info.AC),
+        AN = annotations_ht.info.AN,
+
+        # Variant QC statistics
+        ALL_p_value_hwe = annotations_ht.total.ALL_p_value_hwe,
+        ALL_p_value_excess_het = annotations_ht.total.ALL_p_value_excess_het,
+
+        # GVS population frequencies
+        gvs_all_ac = annotations_ht._vat.gvs_all_ac,
+        gvs_all_an = annotations_ht._vat.gvs_all_an,
+        gvs_all_af = annotations_ht._vat.gvs_all_af,
+        gvs_max_ac = annotations_ht._vat.gvs_max_ac,
+        gvs_max_an = annotations_ht._vat.gvs_max_an,
+        gvs_max_af = annotations_ht._vat.gvs_max_af,
+        gvs_max_subpop = annotations_ht._vat.gvs_max_subpop,
+
+        # GVS ancestry AF
+        gvs_afr_af = annotations_ht._vat.gvs_afr_af,
+        gvs_amr_af = annotations_ht._vat.gvs_amr_af,
+        gvs_eas_af = annotations_ht._vat.gvs_eas_af,
+        gvs_eur_af = annotations_ht._vat.gvs_eur_af,
+        gvs_mid_af = annotations_ht._vat.gvs_mid_af,
+        gvs_sas_af = annotations_ht._vat.gvs_sas_af,
+        gvs_oth_af = annotations_ht._vat.gvs_oth_af,
+
+        # gnomAD frequencies
+        gnomad_all_ac = annotations_ht._vat.gnomad_all_ac,
+        gnomad_all_an = annotations_ht._vat.gnomad_all_an,
+        gnomad_all_af = annotations_ht._vat.gnomad_all_af,
+        gnomad_max_ac = annotations_ht._vat.gnomad_max_ac,
+        gnomad_max_an = annotations_ht._vat.gnomad_max_an,
+        gnomad_max_af = annotations_ht._vat.gnomad_max_af,
+        gnomad_max_subpop = annotations_ht._vat.gnomad_max_subpop,
+
+        # Clinical / functional annotations
+        consequence = annotations_ht._vat.consequence,
+        clinvar_classification = annotations_ht._vat.clinvar_classification,
+        clinvar_phenotype = annotations_ht._vat.clinvar_phenotype,
+        omim_phenotypes_id = annotations_ht._vat.omim_phenotypes_id,
+        gene_omim_id = annotations_ht._vat.gene_omim_id,
+        revel = annotations_ht._vat.revel,
+        aa_change = annotations_ht._vat.aa_change,
+
+        # SpliceAI scores
+        splice_ai_acceptor_gain_score = annotations_ht._vat.splice_ai_acceptor_gain_score,
+        splice_ai_acceptor_loss_score = annotations_ht._vat.splice_ai_acceptor_loss_score,
+        splice_ai_donor_gain_score = annotations_ht._vat.splice_ai_donor_gain_score,
+        splice_ai_donor_loss_score = annotations_ht._vat.splice_ai_donor_loss_score,
+
+        # SpliceAI distances
+        splice_ai_acceptor_gain_distance = annotations_ht._vat.splice_ai_acceptor_gain_distance,
+        splice_ai_acceptor_loss_distance = annotations_ht._vat.splice_ai_acceptor_loss_distance,
+        splice_ai_donor_gain_distance = annotations_ht._vat.splice_ai_donor_gain_distance,
+        splice_ai_donor_loss_distance = annotations_ht._vat.splice_ai_donor_loss_distance
+    )
+
+    # Export annotations
+    annotations_tsv = f'{args.OutputBucket}/{args.OutputPrefix}.annotations.tsv.bgz'
+    annotations_ht.export(annotations_tsv)
     # save to info field to export to vcf
     mt_filtered = mt_filtered.annotate_rows(
             info = mt_filtered.info.annotate(
