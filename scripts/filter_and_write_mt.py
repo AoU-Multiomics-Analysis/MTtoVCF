@@ -254,13 +254,13 @@ def main(args):
         gvs_sas_an = annotations_ht._vat.gvs_sas_an,
         gvs_oth_an = annotations_ht._vat.gvs_oth_an,
 
-        gvs_afr_ac = acnotations_ht._vat.gvs_afr_ac,
-        gvs_amr_ac = acnotations_ht._vat.gvs_amr_ac,
-        gvs_eas_ac = acnotations_ht._vat.gvs_eas_ac,
-        gvs_eur_ac = acnotations_ht._vat.gvs_eur_ac,
-        gvs_mid_ac = acnotations_ht._vat.gvs_mid_ac,
-        gvs_sas_ac = acnotations_ht._vat.gvs_sas_ac,
-        gvs_oth_ac = acnotations_ht._vat.gvs_oth_ac,
+        gvs_afr_ac = annotations_ht._vat.gvs_afr_ac,
+        gvs_amr_ac = annotations_ht._vat.gvs_amr_ac,
+        gvs_eas_ac = annotations_ht._vat.gvs_eas_ac,
+        gvs_eur_ac = annotations_ht._vat.gvs_eur_ac,
+        gvs_mid_ac = annotations_ht._vat.gvs_mid_ac,
+        gvs_sas_ac = annotations_ht._vat.gvs_sas_ac,
+        gvs_oth_ac = annotations_ht._vat.gvs_oth_ac,
 
         # gnomAD frequencies
         gnomad_all_ac = annotations_ht._vat.gnomad_all_ac,
