@@ -90,6 +90,26 @@ def main(args):
         gvs_sas_af=_cast_to_float(vat_ht.gvs_sas_af),
         gvs_oth_af=_cast_to_float(vat_ht.gvs_oth_af),
 
+        # GVS subpopulation allele number 
+        gvs_afr_an=_cast_to_float(vat_ht.gvs_afr_an),
+        gvs_amr_an=_cast_to_float(vat_ht.gvs_amr_an),
+        gvs_eas_an=_cast_to_float(vat_ht.gvs_eas_an),
+        gvs_eur_an=_cast_to_float(vat_ht.gvs_eur_an),
+        gvs_mid_an=_cast_to_float(vat_ht.gvs_mid_an),
+        gvs_sas_an=_cast_to_float(vat_ht.gvs_sas_an),
+        gvs_oth_an=_cast_to_float(vat_ht.gvs_oth_an),
+        
+        # GVS subpopulation allele counts
+        gvs_afr_ac=_cast_to_float(vat_ht.gvs_afr_ac),
+        gvs_amr_ac=_cast_to_float(vat_ht.gvs_amr_ac),
+        gvs_eas_ac=_cast_to_float(vat_ht.gvs_eas_ac),
+        gvs_eur_ac=_cast_to_float(vat_ht.gvs_eur_ac),
+        gvs_mid_ac=_cast_to_float(vat_ht.gvs_mid_ac),
+        gvs_sas_ac=_cast_to_float(vat_ht.gvs_sas_ac),
+        gvs_oth_ac=_cast_to_float(vat_ht.gvs_oth_ac),
+
+
+
         # gnomAD population frequencies
         gnomad_all_ac=_cast_to_int(vat_ht.gnomad_all_ac),
         gnomad_all_an=_cast_to_int(vat_ht.gnomad_all_an),
@@ -226,6 +246,22 @@ def main(args):
         gvs_sas_af = annotations_ht._vat.gvs_sas_af,
         gvs_oth_af = annotations_ht._vat.gvs_oth_af,
 
+        gvs_afr_an = annotations_ht._vat.gvs_afr_an,
+        gvs_amr_an = annotations_ht._vat.gvs_amr_an,
+        gvs_eas_an = annotations_ht._vat.gvs_eas_an,
+        gvs_eur_an = annotations_ht._vat.gvs_eur_an,
+        gvs_mid_an = annotations_ht._vat.gvs_mid_an,
+        gvs_sas_an = annotations_ht._vat.gvs_sas_an,
+        gvs_oth_an = annotations_ht._vat.gvs_oth_an,
+
+        gvs_afr_ac = acnotations_ht._vat.gvs_afr_ac,
+        gvs_amr_ac = acnotations_ht._vat.gvs_amr_ac,
+        gvs_eas_ac = acnotations_ht._vat.gvs_eas_ac,
+        gvs_eur_ac = acnotations_ht._vat.gvs_eur_ac,
+        gvs_mid_ac = acnotations_ht._vat.gvs_mid_ac,
+        gvs_sas_ac = acnotations_ht._vat.gvs_sas_ac,
+        gvs_oth_ac = acnotations_ht._vat.gvs_oth_ac,
+
         # gnomAD frequencies
         gnomad_all_ac = annotations_ht._vat.gnomad_all_ac,
         gnomad_all_an = annotations_ht._vat.gnomad_all_an,
@@ -288,6 +324,25 @@ def main(args):
                 gvs_mid_af=mt_filtered._vat.gvs_mid_af,
                 gvs_sas_af=mt_filtered._vat.gvs_sas_af,
                 gvs_oth_af=mt_filtered._vat.gvs_oth_af,
+                
+                # subpopulation an 
+                gvs_afr_an = annotations_ht._vat.gvs_afr_an,
+                gvs_amr_an = annotations_ht._vat.gvs_amr_an,
+                gvs_eas_an = annotations_ht._vat.gvs_eas_an,
+                gvs_eur_an = annotations_ht._vat.gvs_eur_an,
+                gvs_mid_an = annotations_ht._vat.gvs_mid_an,
+                gvs_sas_an = annotations_ht._vat.gvs_sas_an,
+                gvs_oth_an = annotations_ht._vat.gvs_oth_an,
+
+                # subpopulation AC 
+                gvs_afr_ac = acnotations_ht._vat.gvs_afr_ac,
+                gvs_amr_ac = acnotations_ht._vat.gvs_amr_ac,
+                gvs_eas_ac = acnotations_ht._vat.gvs_eas_ac,
+                gvs_eur_ac = acnotations_ht._vat.gvs_eur_ac,
+                gvs_mid_ac = acnotations_ht._vat.gvs_mid_ac,
+                gvs_sas_ac = acnotations_ht._vat.gvs_sas_ac,
+                gvs_oth_ac = acnotations_ht._vat.gvs_oth_ac,
+
 
                 # gnomAD population frequencies from VAT
                 gnomad_all_ac=mt_filtered._vat.gnomad_all_ac,
