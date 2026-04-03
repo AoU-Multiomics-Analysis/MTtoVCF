@@ -2,46 +2,28 @@ version 1.0
 
 import "workflow/FilterMT.wdl" as FilterMT
 
-#task CleanVCF {
-#    input {
-#        File VCF
-#        String Prefix
-#    }
-#   
-#    command <<<
-#      set -euo pipefail
-#
-#      bcftools index -t ~{VCF}
-#
-#      info_names=$(bcftools view -h ~{VCF} | \
-#        grep '^##INFO=<ID=' | \
-#        sed -E 's/^##INFO=<ID=([^,]+).*/\1/' | \
-#        paste -sd '\t' -)
-#
-#      info_fields=$(bcftools view -h ~{VCF} | \
-#        grep '^##INFO=<ID=' | \
-#        sed -E 's/^##INFO=<ID=([^,]+).*/%INFO\/\1/' | \
-#        paste -sd '\t' -)
-#
-#      {
-#        printf "CHROM\tPOS\tID\tREF\tALT\t${info_names}\n"
-#        bcftools query \
-#          -f "%CHROM\t%POS\t%ID\t%REF\t%ALT\t${info_fields}\n" \
-#          ~{VCF}
-#      } > ~{Prefix}.annotations.tsv
-#    >>>   
-#    
-#    runtime {
-#        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils" 
-#        memory: "256G"
-#        cpu: 64
-#        disks: "local-disk 1000 SSD"
-#    }
-#    
-#    output {
-#        String Annotations =  "~{Prefix}.VAT.tsv"
-#    }
-#}
+task IndexVCF {
+    input {
+        File VCF
+        String Prefix
+    }
+   
+    command <<<
+        set -euo pipefail
+        bcftools index -p vcf ~{VCF}
+    >>>   
+    
+    runtime {
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils" 
+        memory: "256G"
+        cpu: 64
+        disks: "local-disk 1000 SSD"
+    }
+    
+    output {
+        File Index =  "~{Prefix}.vcf.bgz.tbi"
+    }
+}
 
 
 workflow FilterMTAndExportToVCF{
@@ -87,15 +69,15 @@ workflow FilterMTAndExportToVCF{
         
     
     
-   # call CleanVCF {
-   #     input: 
-   #         VCF = filter.PathVCF,
-   #         Prefix = FullPrefix
-   # } 
+   call IndexVCF {
+        input: 
+            VCF = filter.PathVCF,
+            Prefix = FullPrefix
+    } 
     
     output {
         String PathVCF = filter.PathVCF
-        #File Annotations = CleanVCF.Annotations
+        File Index = IndexVCF.Index
     }
 }
 
