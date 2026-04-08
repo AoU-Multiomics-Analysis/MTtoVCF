@@ -326,22 +326,22 @@ def main(args):
                 gvs_oth_af=mt_filtered._vat.gvs_oth_af,
                 
                 # subpopulation an 
-                gvs_afr_an = annotations_ht._vat.gvs_afr_an,
-                gvs_amr_an = annotations_ht._vat.gvs_amr_an,
-                gvs_eas_an = annotations_ht._vat.gvs_eas_an,
-                gvs_eur_an = annotations_ht._vat.gvs_eur_an,
-                gvs_mid_an = annotations_ht._vat.gvs_mid_an,
-                gvs_sas_an = annotations_ht._vat.gvs_sas_an,
-                gvs_oth_an = annotations_ht._vat.gvs_oth_an,
+                gvs_afr_an = mt_filtered._vat.gvs_afr_an,
+                gvs_amr_an = mt_filtered._vat.gvs_amr_an,
+                gvs_eas_an = mt_filtered._vat.gvs_eas_an,
+                gvs_eur_an = mt_filtered._vat.gvs_eur_an,
+                gvs_mid_an = mt_filtered._vat.gvs_mid_an,
+                gvs_sas_an = mt_filtered._vat.gvs_sas_an,
+                gvs_oth_an = mt_filtered._vat.gvs_oth_an,
 
                 # subpopulation AC 
-                gvs_afr_ac = acnotations_ht._vat.gvs_afr_ac,
-                gvs_amr_ac = acnotations_ht._vat.gvs_amr_ac,
-                gvs_eas_ac = acnotations_ht._vat.gvs_eas_ac,
-                gvs_eur_ac = acnotations_ht._vat.gvs_eur_ac,
-                gvs_mid_ac = acnotations_ht._vat.gvs_mid_ac,
-                gvs_sas_ac = acnotations_ht._vat.gvs_sas_ac,
-                gvs_oth_ac = acnotations_ht._vat.gvs_oth_ac,
+                gvs_afr_ac = mt_filtered._vat.gvs_afr_ac,
+                gvs_amr_ac = mt_filtered._vat.gvs_amr_ac,
+                gvs_eas_ac = mt_filtered._vat.gvs_eas_ac,
+                gvs_eur_ac = mt_filtered._vat.gvs_eur_ac,
+                gvs_mid_ac = mt_filtered._vat.gvs_mid_ac,
+                gvs_sas_ac = mt_filtered._vat.gvs_sas_ac,
+                gvs_oth_ac = mt_filtered._vat.gvs_oth_ac,
 
 
                 # gnomAD population frequencies from VAT
