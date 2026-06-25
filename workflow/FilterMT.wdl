@@ -13,12 +13,12 @@ workflow FilterMT {
         String Branch = "main"
         File? BedFile
         String VATHailTable
-        Int TaskCpu = 128
-        String TaskMemory = "512G"
-        String TaskDisk = "local-disk 2000 SSD"
-        String SparkDriverMemory = "400g"
-        Int SparkParallelism = 512
-        Int SparkShufflePartitions = 512
+        Int TaskCpu = 64
+        String TaskMemory = "256G"
+        String TaskDisk = "local-disk 1000 SSD"
+        String SparkDriverMemory = "64g"
+        Int SparkParallelism = 100
+        Int SparkShufflePartitions = 100
     }
     
     call TaskFilterMT {
