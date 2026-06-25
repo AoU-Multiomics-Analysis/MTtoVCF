@@ -130,7 +130,6 @@ def main(args):
         LoF_filter=sanitize_info(vat_ht.LoF_filter),
         LoF_flags=sanitize_info(vat_ht.LoF_flags),
         LoF_info=sanitize_info(vat_ht.LoF_info),
-        GERP=_cast_to_float(vat_ht.GERP),
         rsid=_cast_to_str(vat_ht.dbsnp_rsid),
         # SpliceAI scores and distances
         splice_ai_acceptor_gain_score=_cast_to_float(vat_ht.splice_ai_acceptor_gain_score),
@@ -288,7 +287,6 @@ def main(args):
         LoF_filter = annotations_ht._vat.LoF_filter,
         LoF_flags = annotations_ht._vat.LoF_flags,
         LoF_info = annotations_ht._vat.LoF_info,
-        GERP = annotations_ht._vat.GERP,
 
         # SpliceAI scores
         splice_ai_acceptor_gain_score = annotations_ht._vat.splice_ai_acceptor_gain_score,
@@ -375,7 +373,6 @@ def main(args):
                 LoF_filter=mt_filtered._vat.LoF_filter,
                 LoF_flags=mt_filtered._vat.LoF_flags,
                 LoF_info=mt_filtered._vat.LoF_info,
-                GERP=mt_filtered._vat.GERP,
                 rsid=mt_filtered._vat.rsid,
 
                 # SpliceAI scores and distances from VAT
