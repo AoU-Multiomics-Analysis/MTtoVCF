@@ -2,24 +2,36 @@ import hail as hl
 import argparse
 
 
+def _positive_int(value):
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("value must be a positive integer.")
+    return parsed
+
+
+def _spark_local_threads(value):
+    if value == '*':
+        return value
+
+    parsed = _positive_int(value)
+    return str(parsed)
+
+
 # init
 def main(args):
-    # Initialize Hail with hard-coded configuration
+    # Initialize Hail with workflow-configurable local Spark resources.
     hl.init(
-    app_name='hail_job',
-    master='local[*]',
-    tmp_dir=f'{args.CloudTmpdir}',  # Cloud storage recommended here
-    spark_conf={
-        'spark.local.dir': '/cromwell_root',  # Local SSD for Spark shuffle/spill
-        'spark.executor.instances': '4',
-        'spark.executor.cores': '16',
-        'spark.executor.memory': '64g',
-        'spark.driver.memory': '64g',
-        'spark.sql.shuffle.partitions': '100',
-        'spark.default.parallelism': '100',
-        'spark.memory.fraction': '0.8',
-        'spark.memory.storageFraction': '0.2'
-    }
+        app_name='hail_job',
+        master=f'local[{args.SparkLocalThreads}]',
+        tmp_dir=f'{args.CloudTmpdir}',  # Cloud storage recommended here
+        spark_conf={
+            'spark.local.dir': '/cromwell_root',  # Local SSD for Spark shuffle/spill
+            'spark.driver.memory': args.SparkDriverMemory,
+            'spark.sql.shuffle.partitions': str(args.SparkShufflePartitions),
+            'spark.default.parallelism': str(args.SparkParallelism),
+            'spark.memory.fraction': '0.8',
+            'spark.memory.storageFraction': '0.2'
+        }
     )
     hl.default_reference('GRCh38')
 
@@ -400,7 +412,7 @@ def main(args):
     hl.stop()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Filter and write Hail MatrixTable with hard-coded Hail configuration.")
+    parser = argparse.ArgumentParser(description="Filter and write Hail MatrixTable with configurable Hail resources.")
     parser.add_argument("--MatrixTable", required=True, help="Path to input MatrixTable.")
     parser.add_argument("--SampleList", required=True, help="Path to samples TSV file.")
     parser.add_argument("--MinAlleleCount", required=True, help="Min Allele count threshold.")
@@ -411,6 +423,10 @@ if __name__ == "__main__":
     parser.add_argument("--OutputBucket", required=True, help="Path to output VCF bucket.")
     parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")
     parser.add_argument("--CloudTmpdir", required=True, help="Temporary directory for spark/hail to work with.")
+    parser.add_argument("--SparkLocalThreads", type=_spark_local_threads, default='128', help="Spark local worker threads, or '*' for all visible CPUs.")
+    parser.add_argument("--SparkDriverMemory", default='400g', help="Spark driver memory, for example 64g or 400g.")
+    parser.add_argument("--SparkParallelism", type=_positive_int, default=512, help="Spark default parallelism.")
+    parser.add_argument("--SparkShufflePartitions", type=_positive_int, default=512, help="Spark SQL shuffle partitions.")
 
     args = parser.parse_args()
     main(args)

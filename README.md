@@ -27,6 +27,16 @@ This is the main, all-in-one workflow. It filters the matrix table, annotates va
 | `CloudTmpdir` | Temporary cloud directory for Spark/Hail intermediate data |
 | `BedFile` | *(optional)* BED file of genomic regions to restrict variants to |
 | `Branch` | Docker image branch tag (default: `main`) |
+| `TaskCpu` | CPU count for the Hail filter task (default: 128) |
+| `TaskMemory` | Memory for the Hail filter task (default: `512G`) |
+| `TaskDisk` | Local disk request for the Hail filter task (default: `local-disk 2000 SSD`) |
+| `SparkDriverMemory` | Spark/Hail driver memory inside the task (default: `400g`) |
+| `SparkParallelism` | Spark default parallelism (default: 512) |
+| `SparkShufflePartitions` | Spark SQL shuffle partitions (default: 512) |
+
+When running through `main.wdl`, these filter-task runtime inputs are exposed with a `Filter` prefix: `FilterTaskCpu`, `FilterTaskMemory`, `FilterTaskDisk`, `FilterSparkDriverMemory`, `FilterSparkParallelism`, and `FilterSparkShufflePartitions`.
+
+The defaults are set for larger runs. Override these values downward for smaller or cheaper runs.
 
 **Filtering steps performed by `filter_and_write_mt.py`:**
 

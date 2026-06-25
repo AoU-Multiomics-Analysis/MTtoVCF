@@ -13,6 +13,12 @@ workflow FilterMT {
         String Branch = "main"
         File? BedFile
         String VATHailTable
+        Int TaskCpu = 128
+        String TaskMemory = "512G"
+        String TaskDisk = "local-disk 2000 SSD"
+        String SparkDriverMemory = "400g"
+        Int SparkParallelism = 512
+        Int SparkShufflePartitions = 512
     }
     
     call TaskFilterMT {
@@ -27,7 +33,13 @@ workflow FilterMT {
             OutputPrefix = OutputPrefix,
             CloudTmpdir = CloudTmpdir,
             Branch = Branch,
-            BedFile = BedFile
+            BedFile = BedFile,
+            TaskCpu = TaskCpu,
+            TaskMemory = TaskMemory,
+            TaskDisk = TaskDisk,
+            SparkDriverMemory = SparkDriverMemory,
+            SparkParallelism = SparkParallelism,
+            SparkShufflePartitions = SparkShufflePartitions
     }
 
     output {
@@ -48,6 +60,12 @@ task TaskFilterMT {
         String OutputPrefix
         String CloudTmpdir
         String Branch
+        Int TaskCpu
+        String TaskMemory
+        String TaskDisk
+        String SparkDriverMemory
+        Int SparkParallelism
+        Int SparkShufflePartitions
     }
 
     command <<<
@@ -65,14 +83,18 @@ task TaskFilterMT {
             --AlleleNumberPercentage ~{AlleleNumberPercentage} \
             --OutputBucket ~{OutputBucket} \
             --OutputPrefix ~{OutputPrefix} \
-            --CloudTmpdir ~{CloudTmpdir}
+            --CloudTmpdir ~{CloudTmpdir} \
+            --SparkLocalThreads ~{TaskCpu} \
+            --SparkDriverMemory ~{SparkDriverMemory} \
+            --SparkParallelism ~{SparkParallelism} \
+            --SparkShufflePartitions ~{SparkShufflePartitions}
     >>>
 
     runtime {
         docker: "ghcr.io/aou-multiomics-analysis/mttovcf:" + Branch
-        memory: "256G"
-        cpu: 64
-        disks: "local-disk 1000 SSD"
+        memory: TaskMemory
+        cpu: TaskCpu
+        disks: TaskDisk
     }
     
     output {
