@@ -48,6 +48,14 @@ workflow FilterMTAndExportToVCF{
         String OutputPrefix
         String CloudTmpdir
         String Branch = "main"
+
+        # Runtime params for the Hail filter task
+        Int FilterTaskCpu = 64
+        String FilterTaskMemory = "256G"
+        String FilterTaskDisk = "local-disk 1000 SSD"
+        String FilterSparkDriverMemory = "64g"
+        Int FilterSparkParallelism = 100
+        Int FilterSparkShufflePartitions = 100
     }
 
     String FullPrefix = "~{OutputPrefix}.~{SampleSetName}.AC~{MinAlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic.~{CallSetName}"
@@ -64,7 +72,13 @@ workflow FilterMTAndExportToVCF{
             OutputPrefix = FullPrefix,
             CloudTmpdir = CloudTmpdir,
             BedFile = BedFile,
-            Branch = Branch
+            Branch = Branch,
+            TaskCpu = FilterTaskCpu,
+            TaskMemory = FilterTaskMemory,
+            TaskDisk = FilterTaskDisk,
+            SparkDriverMemory = FilterSparkDriverMemory,
+            SparkParallelism = FilterSparkParallelism,
+            SparkShufflePartitions = FilterSparkShufflePartitions
     }
         
     
