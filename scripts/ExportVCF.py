@@ -2,12 +2,13 @@ import hail as hl
 import argparse
 import os
 
+
+def join_cloud_path(parent, child):
+    return f"{parent.rstrip('/')}/{child.lstrip('/')}"
+
+
 def write_vcf(inputs):
-    OutputBucket = inputs['OutputBucket'] 
-    if not OutputBucket.endswith('/'):
-        OutputBucket += '/'
-    
-    OutputFilePath = OutputBucket + inputs['OutputPrefix'] + '.vcf.bgz'
+    OutputFilePath = join_cloud_path(inputs['OutputBucket'], inputs['OutputPrefix'] + '.vcf.bgz')
     print('Writing VCF to:')
     print(OutputFilePath)
 
