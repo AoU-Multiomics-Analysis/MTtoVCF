@@ -17,6 +17,10 @@ def _spark_local_threads(value):
     return str(parsed)
 
 
+def _join_cloud_path(parent, child):
+    return f"{parent.rstrip('/')}/{child.lstrip('/')}"
+
+
 # init
 def main(args):
     # Initialize Hail with workflow-configurable local Spark resources.
@@ -314,7 +318,7 @@ def main(args):
     )
 
     # Export annotations
-    annotations_tsv = f'{args.OutputBucket}/{args.OutputPrefix}.annotations.tsv.bgz'
+    annotations_tsv = _join_cloud_path(args.OutputBucket, f'{args.OutputPrefix}.annotations.tsv.bgz')
     annotations_ht.export(annotations_tsv)
     # save to info field to export to vcf
     mt_filtered = mt_filtered.annotate_rows(
@@ -403,7 +407,7 @@ def main(args):
     
 
     # Directly export to VCF
-    OutputFilePath = f'{args.OutputBucket}/{args.OutputPrefix}.vcf.bgz'
+    OutputFilePath = _join_cloud_path(args.OutputBucket, f'{args.OutputPrefix}.vcf.bgz')
     hl.export_vcf(mt_filtered, OutputFilePath)
 
     with open('outpath.txt', 'w') as file:
