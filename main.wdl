@@ -1,6 +1,7 @@
 version 1.0
 
 import "workflow/FilterMT.wdl" as FilterMT
+import "workflow/VCFPostProcess.wdl" as VCFPostProcess
 
 task IndexVCF {
     input {
@@ -56,6 +57,12 @@ workflow FilterMTAndExportToVCF{
         String FilterSparkDriverMemory = "64g"
         Int FilterSparkParallelism = 100
         Int FilterSparkShufflePartitions = 100
+
+        # Optional VCF post-processing
+        Boolean MakeDosage = false
+        Boolean MakePlink = false
+        Int DosageThreads = 4
+        Int PlinkNewIdMaxAlleleLen = 200
     }
 
     String FullPrefix = "~{OutputPrefix}.~{SampleSetName}.AC~{MinAlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic.~{CallSetName}"
@@ -80,18 +87,31 @@ workflow FilterMTAndExportToVCF{
             SparkParallelism = FilterSparkParallelism,
             SparkShufflePartitions = FilterSparkShufflePartitions
     }
-        
-    
-    
+
    call IndexVCF {
-        input: 
+        input:
             VCF = filter.PathVCF,
             Prefix = FullPrefix
-    } 
-    
+    }
+
+   call VCFPostProcess.VCFPostProcess as postprocess {
+        input:
+            vcf_file = filter.PathVCF,
+            output_prefix = FullPrefix,
+            make_dosage = MakeDosage,
+            make_plink = MakePlink,
+            dosage_threads = DosageThreads,
+            plink_new_id_max_allele_len = PlinkNewIdMaxAlleleLen
+    }
+
     output {
-        String PathVCF = filter.PathVCF
+        File PathVCF = filter.PathVCF
         File Index = IndexVCF.Index
+        File? GenotypeDosage = postprocess.GenotypeDosage
+        File? GenotypeDosageIndex = postprocess.GenotypeDosageIndex
+        File? PlinkPgen = postprocess.PlinkPgen
+        File? PlinkPvar = postprocess.PlinkPvar
+        File? PlinkPsam = postprocess.PlinkPsam
     }
 }
 

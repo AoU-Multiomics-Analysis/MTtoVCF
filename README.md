@@ -33,6 +33,10 @@ This is the main, all-in-one workflow. It filters the matrix table, annotates va
 | `SparkDriverMemory` | Spark/Hail driver memory inside the task (default: `64g`) |
 | `SparkParallelism` | Spark default parallelism (default: 100) |
 | `SparkShufflePartitions` | Spark SQL shuffle partitions (default: 100) |
+| `MakeDosage` | If `true`, convert the exported VCF to a genotype dosage TSV (default: `false`; `main.wdl` only) |
+| `MakePlink` | If `true`, convert the exported VCF to PLINK 2 pgen/pvar/psam files (default: `false`; `main.wdl` only) |
+| `DosageThreads` | Threads for the optional bcftools dosage task (default: 4; `main.wdl` only) |
+| `PlinkNewIdMaxAlleleLen` | Value passed to PLINK 2 `--new-id-max-allele-len` (default: 200; `main.wdl` only) |
 
 When running through `main.wdl`, these filter-task runtime inputs are exposed with a `Filter` prefix: `FilterTaskCpu`, `FilterTaskMemory`, `FilterTaskDisk`, `FilterSparkDriverMemory`, `FilterSparkParallelism`, and `FilterSparkShufflePartitions`.
 
@@ -70,6 +74,8 @@ Override these values upward when a larger runtime configuration is available.
 | `splice_ai_donor_gain_distance` / `_loss_distance` | SpliceAI donor gain/loss distances |
 
 **Output:** A bgzipped VCF (`<OutputPrefix>.vcf.bgz`) written to `<OutputBucket>`.
+
+When running through `main.wdl`, the exported VCF is always indexed. If `MakeDosage` is enabled, the workflow also emits `<FullPrefix>.dose.tsv.gz` and its `.tbi` index. If `MakePlink` is enabled, it emits `<FullPrefix>.pgen`, `<FullPrefix>.pvar`, and `<FullPrefix>.psam`.
 
 ---
 
