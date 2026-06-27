@@ -43,7 +43,7 @@ workflow FilterMT {
     }
 
     output {
-        String PathVCF = TaskFilterMT.PathVCF
+        File PathVCF = TaskFilterMT.PathVCF
     }
 }
 
@@ -98,6 +98,6 @@ task TaskFilterMT {
     }
     
     output {
-        String PathVCF = read_string('outpath.txt') 
+        File PathVCF = read_string('outpath.txt')
     }
 }
