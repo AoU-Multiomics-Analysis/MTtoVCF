@@ -11,8 +11,8 @@ task IndexVCF {
    
     command <<<
         set -euo pipefail
-        bcftools index -p vcf ~{VCF}
-    >>>   
+        bcftools index --tbi --force "~{VCF}"
+    >>>
     
     runtime {
         docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils" 
