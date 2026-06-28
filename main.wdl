@@ -6,13 +6,12 @@ import "workflow/VCFPostProcess.wdl" as VCFPostProcess
 task IndexVCF {
     input {
         File VCF
-        String Prefix
     }
    
     command <<<
         set -euo pipefail
         bcftools index --tbi --force \
-            --output "~{Prefix}.vcf.bgz.tbi" \
+            --output "~{basename(VCF)}.tbi" \
             "~{VCF}"
     >>>
     
@@ -24,7 +23,7 @@ task IndexVCF {
     }
     
     output {
-        File Index =  "~{Prefix}.vcf.bgz.tbi"
+        File Index =  "~{basename(VCF)}.tbi"
     }
 }
 
@@ -94,8 +93,7 @@ workflow FilterMTAndExportToVCF{
 
    call IndexVCF {
         input:
-            VCF = filter.PathVCF,
-            Prefix = FullPrefix
+            VCF = filter.PathVCF
     }
 
    call VCFPostProcess.VCFPostProcess as postprocess {
