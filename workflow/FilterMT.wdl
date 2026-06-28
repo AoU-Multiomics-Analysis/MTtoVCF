@@ -12,7 +12,8 @@ workflow FilterMT {
         String CloudTmpdir
         String Branch = "main"
         File? BedFile
-        String VATHailTable
+        String? VATHailTable
+        Boolean AnnotateWithVAT = true
         Int TaskCpu = 64
         String TaskMemory = "256G"
         String TaskDisk = "local-disk 1000 SSD"
@@ -29,6 +30,7 @@ workflow FilterMT {
             MaxAlleleCountThreshold = MaxAlleleCountThreshold,
             AlleleNumberPercentage = AlleleNumberPercentage,
             VATHailTable = VATHailTable,
+            AnnotateWithVAT = AnnotateWithVAT,
             OutputBucket = OutputBucket,
             OutputPrefix = OutputPrefix,
             CloudTmpdir = CloudTmpdir,
@@ -52,7 +54,8 @@ task TaskFilterMT {
         String UriMatrixTable
         File SampleList
         File? BedFile
-        String VATHailTable
+        String? VATHailTable
+        Boolean AnnotateWithVAT
         Int MinAlleleCountThreshold
         Int MaxAlleleCountThreshold
         Int AlleleNumberPercentage
@@ -75,7 +78,7 @@ task TaskFilterMT {
         # and also generates outpath.txt upon completion 
         # of writing VCF 
         python3 /filter_and_write_mt.py   ~{if defined(BedFile) then "--BedFile " + BedFile else ""}  \
-            --VATHailTable ~{VATHailTable} \
+            ~{if AnnotateWithVAT then "--VATHailTable " + select_first([VATHailTable]) else "--SkipVATAnnotations"} \
             --MatrixTable ~{UriMatrixTable} \
             --SampleList ~{SampleList} \
             --MinAlleleCount ~{MinAlleleCountThreshold} \
