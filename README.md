@@ -21,7 +21,8 @@ This is the main, all-in-one workflow. It filters the matrix table, annotates va
 | `MinAlleleCountThreshold` | Minimum allele count to retain a variant (default: 5) |
 | `MaxAlleleCountThreshold` | Maximum allele count to retain a variant (default: unbounded) |
 | `AlleleNumberPercentage` | Minimum AN as a percentage of the maximum possible AN (default: 95) |
-| `VATHailTable` | Path to the pre-computed AoU VAT Hail table (see TSVtoHailTable.wdl) |
+| `VATHailTable` | Path to the pre-computed AoU VAT Hail table (see TSVtoHailTable.wdl); required when `AnnotateWithVAT` is `true` |
+| `AnnotateWithVAT` | If `true`, add VAT annotations to the annotations TSV and VCF INFO fields (default: `true`) |
 | `OutputBucket` | Cloud bucket path for the output VCF |
 | `OutputPrefix` | Filename prefix for the output VCF |
 | `CloudTmpdir` | Temporary cloud directory for Spark/Hail intermediate data |
@@ -76,6 +77,8 @@ Override these values upward when a larger runtime configuration is available.
 **Output:** A bgzipped VCF (`<OutputPrefix>.vcf.bgz`) written to `<OutputBucket>`.
 
 When running through `main.wdl`, the exported VCF is always indexed. If `MakeDosage` is enabled, the workflow also emits `<FullPrefix>.dose.tsv.gz` and its `.tbi` index. If `MakePlink` is enabled, it emits `<FullPrefix>.pgen`, `<FullPrefix>.pvar`, and `<FullPrefix>.psam`.
+
+For pipeline testing without VAT, set `AnnotateWithVAT = false` and omit `VATHailTable`. The annotations TSV and VCF still include filtered cohort statistics and variant QC fields, but VAT-derived fields are omitted.
 
 ---
 

@@ -21,32 +21,69 @@ def _join_cloud_path(parent, child):
     return f"{parent.rstrip('/')}/{child.lstrip('/')}"
 
 
-# init
-def main(args):
-    # Initialize Hail with workflow-configurable local Spark resources.
-    hl.init(
-        app_name='hail_job',
-        master=f'local[{args.SparkLocalThreads}]',
-        tmp_dir=f'{args.CloudTmpdir}',  # Cloud storage recommended here
-        spark_conf={
-            'spark.local.dir': '/cromwell_root',  # Local SSD for Spark shuffle/spill
-            'spark.driver.memory': args.SparkDriverMemory,
-            'spark.sql.shuffle.partitions': str(args.SparkShufflePartitions),
-            'spark.default.parallelism': str(args.SparkParallelism),
-            'spark.memory.fraction': '0.8',
-            'spark.memory.storageFraction': '0.2'
-        }
-    )
-    hl.default_reference('GRCh38')
+VAT_ANNOTATION_FIELDS = (
+    'gvs_all_ac',
+    'gvs_all_an',
+    'gvs_all_af',
+    'gvs_max_ac',
+    'gvs_max_an',
+    'gvs_max_af',
+    'gvs_max_subpop',
+    'gvs_afr_af',
+    'gvs_amr_af',
+    'gvs_eas_af',
+    'gvs_eur_af',
+    'gvs_mid_af',
+    'gvs_sas_af',
+    'gvs_oth_af',
+    'gvs_afr_an',
+    'gvs_amr_an',
+    'gvs_eas_an',
+    'gvs_eur_an',
+    'gvs_mid_an',
+    'gvs_sas_an',
+    'gvs_oth_an',
+    'gvs_afr_ac',
+    'gvs_amr_ac',
+    'gvs_eas_ac',
+    'gvs_eur_ac',
+    'gvs_mid_ac',
+    'gvs_sas_ac',
+    'gvs_oth_ac',
+    'gnomad_all_ac',
+    'gnomad_all_an',
+    'gnomad_all_af',
+    'gnomad_max_ac',
+    'gnomad_max_an',
+    'gnomad_max_af',
+    'gnomad_max_subpop',
+    'consequence',
+    'clinvar_classification',
+    'clinvar_phenotype',
+    'omim_phenotypes_id',
+    'gene_omim_id',
+    'revel',
+    'aa_change',
+    'LoF',
+    'LoF_filter',
+    'LoF_flags',
+    'LoF_info',
+    'splice_ai_acceptor_gain_score',
+    'splice_ai_acceptor_loss_score',
+    'splice_ai_donor_gain_score',
+    'splice_ai_donor_loss_score',
+    'splice_ai_acceptor_gain_distance',
+    'splice_ai_acceptor_loss_distance',
+    'splice_ai_donor_gain_distance',
+    'splice_ai_donor_loss_distance',
+)
 
-    # Load matrix table and samples table
-    mt = hl.read_matrix_table(args.MatrixTable)
-    samples_ht = hl.import_table(args.SampleList, key='research_id')
 
+def _prepare_vat_ht(vat_hail_table):
     # Load pre-computed VAT Hail table for annotation.
     # This table is created from the AoU Variant Annotation Table (VAT) using
     # the TSVtoHailTable workflow.
-    vat_ht = hl.read_table(args.VATHailTable)
+    vat_ht = hl.read_table(vat_hail_table)
 
     # Parse the variant identifier (vid) into locus + alleles so we can join
     # with the matrix table.  Expected vid format: contig-position-ref-alt
@@ -78,12 +115,12 @@ def main(args):
 
     def _cast_to_str(expr):
         return hl.or_missing(expr != '', expr)
+
     def sanitize_info(expr):
         expr = hl.or_missing(expr != '', expr)
         expr = hl.if_else(hl.is_defined(expr), expr.replace(';', '|'), expr)
         expr = hl.if_else(hl.is_defined(expr), expr.replace('=', ':'), expr)
         return expr
-
 
     vat_ht = vat_ht.select(
         'locus',
@@ -96,7 +133,7 @@ def main(args):
         gvs_max_an=_cast_to_int(vat_ht.gvs_max_an),
         gvs_max_af=_cast_to_float(vat_ht.gvs_max_af),
         gvs_max_subpop=_cast_to_str(vat_ht.gvs_max_subpop),
-    
+
         # GVS subpopulation frequencies
         gvs_afr_af=_cast_to_float(vat_ht.gvs_afr_af),
         gvs_amr_af=_cast_to_float(vat_ht.gvs_amr_af),
@@ -106,7 +143,7 @@ def main(args):
         gvs_sas_af=_cast_to_float(vat_ht.gvs_sas_af),
         gvs_oth_af=_cast_to_float(vat_ht.gvs_oth_af),
 
-        # GVS subpopulation allele number 
+        # GVS subpopulation allele number
         gvs_afr_an=_cast_to_float(vat_ht.gvs_afr_an),
         gvs_amr_an=_cast_to_float(vat_ht.gvs_amr_an),
         gvs_eas_an=_cast_to_float(vat_ht.gvs_eas_an),
@@ -114,7 +151,7 @@ def main(args):
         gvs_mid_an=_cast_to_float(vat_ht.gvs_mid_an),
         gvs_sas_an=_cast_to_float(vat_ht.gvs_sas_an),
         gvs_oth_an=_cast_to_float(vat_ht.gvs_oth_an),
-        
+
         # GVS subpopulation allele counts
         gvs_afr_ac=_cast_to_float(vat_ht.gvs_afr_ac),
         gvs_amr_ac=_cast_to_float(vat_ht.gvs_amr_ac),
@@ -124,8 +161,6 @@ def main(args):
         gvs_sas_ac=_cast_to_float(vat_ht.gvs_sas_ac),
         gvs_oth_ac=_cast_to_float(vat_ht.gvs_oth_ac),
 
-
-
         # gnomAD population frequencies
         gnomad_all_ac=_cast_to_int(vat_ht.gnomad_all_ac),
         gnomad_all_an=_cast_to_int(vat_ht.gnomad_all_an),
@@ -134,9 +169,10 @@ def main(args):
         gnomad_max_an=_cast_to_int(vat_ht.gnomad_max_an),
         gnomad_max_af=_cast_to_float(vat_ht.gnomad_max_af),
         gnomad_max_subpop=_cast_to_str(vat_ht.gnomad_max_subpop),
+
         # Clinical / functional annotations
         clinvar_classification=_cast_to_str(vat_ht.clinvar_classification),
-        clinvar_phenotype=sanitize_info(vat_ht.clinvar_phenotype), 
+        clinvar_phenotype=sanitize_info(vat_ht.clinvar_phenotype),
         omim_phenotypes_id=_cast_to_str(vat_ht.omim_phenotypes_id),
         gene_omim_id=_cast_to_str(vat_ht.gene_omim_id),
         consequence=_cast_to_str(vat_ht.consequence),
@@ -147,6 +183,7 @@ def main(args):
         LoF_flags=sanitize_info(vat_ht.LoF_flags),
         LoF_info=sanitize_info(vat_ht.LoF_info),
         rsid=_cast_to_str(vat_ht.dbsnp_rsid),
+
         # SpliceAI scores and distances
         splice_ai_acceptor_gain_score=_cast_to_float(vat_ht.splice_ai_acceptor_gain_score),
         splice_ai_acceptor_loss_score=_cast_to_float(vat_ht.splice_ai_acceptor_loss_score),
@@ -157,7 +194,33 @@ def main(args):
         splice_ai_donor_gain_distance=_cast_to_int(vat_ht.splice_ai_donor_gain_distance),
         splice_ai_donor_loss_distance=_cast_to_int(vat_ht.splice_ai_donor_loss_distance)
     )
-    vat_ht = vat_ht.key_by('locus', 'alleles')
+    return vat_ht.key_by('locus', 'alleles')
+
+
+# init
+def main(args):
+    # Initialize Hail with workflow-configurable local Spark resources.
+    hl.init(
+        app_name='hail_job',
+        master=f'local[{args.SparkLocalThreads}]',
+        tmp_dir=f'{args.CloudTmpdir}',  # Cloud storage recommended here
+        spark_conf={
+            'spark.local.dir': '/cromwell_root',  # Local SSD for Spark shuffle/spill
+            'spark.driver.memory': args.SparkDriverMemory,
+            'spark.sql.shuffle.partitions': str(args.SparkShufflePartitions),
+            'spark.default.parallelism': str(args.SparkParallelism),
+            'spark.memory.fraction': '0.8',
+            'spark.memory.storageFraction': '0.2'
+        }
+    )
+    hl.default_reference('GRCh38')
+
+    # Load matrix table and samples table
+    mt = hl.read_matrix_table(args.MatrixTable)
+    samples_ht = hl.import_table(args.SampleList, key='research_id')
+
+    annotate_with_vat = not args.SkipVATAnnotations
+    vat_ht = _prepare_vat_ht(args.VATHailTable) if annotate_with_vat else None
 
     if args.BedFile:
         bed = hl.import_table(args.BedFile, delimiter='\t', no_header=True,
@@ -217,8 +280,10 @@ def main(args):
         (hl.min(mt_filtered.info.AC) <= int(args.MaxAlleleCount))
     )
 
-    # Join filtered MT with VAT table for annotations
-    mt_filtered = mt_filtered.annotate_rows(_vat = vat_ht[mt_filtered.row_key])
+    if annotate_with_vat:
+        # Join filtered MT with VAT table for annotations.
+        mt_filtered = mt_filtered.annotate_rows(_vat=vat_ht[mt_filtered.row_key])
+
     # Create flattened row table for annotation export
     annotations_ht = mt_filtered.rows()
 
@@ -228,180 +293,56 @@ def main(args):
         ref = annotations_ht.alleles[0],
         alt = annotations_ht.alleles[1]
     )
-    
-    # export annotations to tsv
-    annotations_ht = annotations_ht.select(
 
+    annotation_fields = {
         # Variant identity
-        chrom = annotations_ht.chrom,
-        pos = annotations_ht.pos,
-        ref = annotations_ht.ref,
-        alt = annotations_ht.alt,
-        rsid = annotations_ht._vat.rsid,
+        'chrom': annotations_ht.chrom,
+        'pos': annotations_ht.pos,
+        'ref': annotations_ht.ref,
+        'alt': annotations_ht.alt,
+    }
+    if annotate_with_vat:
+        annotation_fields['rsid'] = annotations_ht._vat.rsid
 
+    annotation_fields.update({
         # Cohort allele statistics
-        AF = hl.min(annotations_ht.info.AF),
-        AC = hl.min(annotations_ht.info.AC),
-        AN = annotations_ht.info.AN,
+        'AF': hl.min(annotations_ht.info.AF),
+        'AC': hl.min(annotations_ht.info.AC),
+        'AN': annotations_ht.info.AN,
 
         # Variant QC statistics
-        ALL_p_value_hwe = annotations_ht.total.ALL_p_value_hwe,
-        ALL_p_value_excess_het = annotations_ht.total.ALL_p_value_excess_het,
+        'ALL_p_value_hwe': annotations_ht.total.ALL_p_value_hwe,
+        'ALL_p_value_excess_het': annotations_ht.total.ALL_p_value_excess_het,
+    })
+    if annotate_with_vat:
+        for field in VAT_ANNOTATION_FIELDS:
+            annotation_fields[field] = getattr(annotations_ht._vat, field)
 
-        # GVS population frequencies
-        gvs_all_ac = annotations_ht._vat.gvs_all_ac,
-        gvs_all_an = annotations_ht._vat.gvs_all_an,
-        gvs_all_af = annotations_ht._vat.gvs_all_af,
-        gvs_max_ac = annotations_ht._vat.gvs_max_ac,
-        gvs_max_an = annotations_ht._vat.gvs_max_an,
-        gvs_max_af = annotations_ht._vat.gvs_max_af,
-        gvs_max_subpop = annotations_ht._vat.gvs_max_subpop,
-
-        # GVS ancestry AF
-        gvs_afr_af = annotations_ht._vat.gvs_afr_af,
-        gvs_amr_af = annotations_ht._vat.gvs_amr_af,
-        gvs_eas_af = annotations_ht._vat.gvs_eas_af,
-        gvs_eur_af = annotations_ht._vat.gvs_eur_af,
-        gvs_mid_af = annotations_ht._vat.gvs_mid_af,
-        gvs_sas_af = annotations_ht._vat.gvs_sas_af,
-        gvs_oth_af = annotations_ht._vat.gvs_oth_af,
-
-        gvs_afr_an = annotations_ht._vat.gvs_afr_an,
-        gvs_amr_an = annotations_ht._vat.gvs_amr_an,
-        gvs_eas_an = annotations_ht._vat.gvs_eas_an,
-        gvs_eur_an = annotations_ht._vat.gvs_eur_an,
-        gvs_mid_an = annotations_ht._vat.gvs_mid_an,
-        gvs_sas_an = annotations_ht._vat.gvs_sas_an,
-        gvs_oth_an = annotations_ht._vat.gvs_oth_an,
-
-        gvs_afr_ac = annotations_ht._vat.gvs_afr_ac,
-        gvs_amr_ac = annotations_ht._vat.gvs_amr_ac,
-        gvs_eas_ac = annotations_ht._vat.gvs_eas_ac,
-        gvs_eur_ac = annotations_ht._vat.gvs_eur_ac,
-        gvs_mid_ac = annotations_ht._vat.gvs_mid_ac,
-        gvs_sas_ac = annotations_ht._vat.gvs_sas_ac,
-        gvs_oth_ac = annotations_ht._vat.gvs_oth_ac,
-
-        # gnomAD frequencies
-        gnomad_all_ac = annotations_ht._vat.gnomad_all_ac,
-        gnomad_all_an = annotations_ht._vat.gnomad_all_an,
-        gnomad_all_af = annotations_ht._vat.gnomad_all_af,
-        gnomad_max_ac = annotations_ht._vat.gnomad_max_ac,
-        gnomad_max_an = annotations_ht._vat.gnomad_max_an,
-        gnomad_max_af = annotations_ht._vat.gnomad_max_af,
-        gnomad_max_subpop = annotations_ht._vat.gnomad_max_subpop,
-
-        # Clinical / functional annotations
-        consequence = annotations_ht._vat.consequence,
-        clinvar_classification = annotations_ht._vat.clinvar_classification,
-        clinvar_phenotype = annotations_ht._vat.clinvar_phenotype,
-        omim_phenotypes_id = annotations_ht._vat.omim_phenotypes_id,
-        gene_omim_id = annotations_ht._vat.gene_omim_id,
-        revel = annotations_ht._vat.revel,
-        aa_change = annotations_ht._vat.aa_change,
-        LoF = annotations_ht._vat.LoF,
-        LoF_filter = annotations_ht._vat.LoF_filter,
-        LoF_flags = annotations_ht._vat.LoF_flags,
-        LoF_info = annotations_ht._vat.LoF_info,
-
-        # SpliceAI scores
-        splice_ai_acceptor_gain_score = annotations_ht._vat.splice_ai_acceptor_gain_score,
-        splice_ai_acceptor_loss_score = annotations_ht._vat.splice_ai_acceptor_loss_score,
-        splice_ai_donor_gain_score = annotations_ht._vat.splice_ai_donor_gain_score,
-        splice_ai_donor_loss_score = annotations_ht._vat.splice_ai_donor_loss_score,
-
-        # SpliceAI distances
-        splice_ai_acceptor_gain_distance = annotations_ht._vat.splice_ai_acceptor_gain_distance,
-        splice_ai_acceptor_loss_distance = annotations_ht._vat.splice_ai_acceptor_loss_distance,
-        splice_ai_donor_gain_distance = annotations_ht._vat.splice_ai_donor_gain_distance,
-        splice_ai_donor_loss_distance = annotations_ht._vat.splice_ai_donor_loss_distance
-    )
+    # export annotations to tsv
+    annotations_ht = annotations_ht.select(**annotation_fields)
 
     # Export annotations
     annotations_tsv = _join_cloud_path(args.OutputBucket, f'{args.OutputPrefix}.annotations.tsv.bgz')
     annotations_ht.export(annotations_tsv)
+
+    info_fields = {
+        'ALL_p_value_hwe': mt_filtered.total.ALL_p_value_hwe,
+        'ALL_p_value_excess_het': mt_filtered.total.ALL_p_value_excess_het,
+
+        # add variant stats based on multi-omics cohort
+        'AF': hl.min(mt_filtered.info.AF),
+        'AC': hl.min(mt_filtered.info.AC),
+        'AN': mt_filtered.info.AN,
+    }
+    if annotate_with_vat:
+        for field in VAT_ANNOTATION_FIELDS:
+            info_fields[field] = getattr(mt_filtered._vat, field)
+        info_fields['rsid'] = mt_filtered._vat.rsid
+
     # save to info field to export to vcf
-    mt_filtered = mt_filtered.annotate_rows(
-            info = mt_filtered.info.annotate(
-                ALL_p_value_hwe = mt_filtered.total.ALL_p_value_hwe,
-                ALL_p_value_excess_het = mt_filtered.total.ALL_p_value_excess_het,
-
-                # add variant stats based on multi-omics cohort
-                AF = hl.min(mt_filtered.info.AF),
-                AC = hl.min(mt_filtered.info.AC),
-                AN = mt_filtered.info.AN,
-
-                # GVS population frequencies from VAT
-                gvs_all_ac=mt_filtered._vat.gvs_all_ac,
-                gvs_all_an=mt_filtered._vat.gvs_all_an,
-                gvs_all_af=mt_filtered._vat.gvs_all_af,
-                gvs_max_ac=mt_filtered._vat.gvs_max_ac,
-                gvs_max_an=mt_filtered._vat.gvs_max_an,
-                gvs_max_af=mt_filtered._vat.gvs_max_af,
-                gvs_max_subpop=mt_filtered._vat.gvs_max_subpop,
-                
-                # GVS subpopulations from VAT
-                gvs_afr_af=mt_filtered._vat.gvs_afr_af,
-                gvs_amr_af=mt_filtered._vat.gvs_amr_af,
-                gvs_eas_af=mt_filtered._vat.gvs_eas_af,
-                gvs_eur_af=mt_filtered._vat.gvs_eur_af,
-                gvs_mid_af=mt_filtered._vat.gvs_mid_af,
-                gvs_sas_af=mt_filtered._vat.gvs_sas_af,
-                gvs_oth_af=mt_filtered._vat.gvs_oth_af,
-                
-                # subpopulation an 
-                gvs_afr_an = mt_filtered._vat.gvs_afr_an,
-                gvs_amr_an = mt_filtered._vat.gvs_amr_an,
-                gvs_eas_an = mt_filtered._vat.gvs_eas_an,
-                gvs_eur_an = mt_filtered._vat.gvs_eur_an,
-                gvs_mid_an = mt_filtered._vat.gvs_mid_an,
-                gvs_sas_an = mt_filtered._vat.gvs_sas_an,
-                gvs_oth_an = mt_filtered._vat.gvs_oth_an,
-
-                # subpopulation AC 
-                gvs_afr_ac = mt_filtered._vat.gvs_afr_ac,
-                gvs_amr_ac = mt_filtered._vat.gvs_amr_ac,
-                gvs_eas_ac = mt_filtered._vat.gvs_eas_ac,
-                gvs_eur_ac = mt_filtered._vat.gvs_eur_ac,
-                gvs_mid_ac = mt_filtered._vat.gvs_mid_ac,
-                gvs_sas_ac = mt_filtered._vat.gvs_sas_ac,
-                gvs_oth_ac = mt_filtered._vat.gvs_oth_ac,
-
-
-                # gnomAD population frequencies from VAT
-                gnomad_all_ac=mt_filtered._vat.gnomad_all_ac,
-                gnomad_all_an=mt_filtered._vat.gnomad_all_an,
-                gnomad_all_af=mt_filtered._vat.gnomad_all_af,
-                gnomad_max_ac=mt_filtered._vat.gnomad_max_ac,
-                gnomad_max_an=mt_filtered._vat.gnomad_max_an,
-                gnomad_max_af=mt_filtered._vat.gnomad_max_af,
-                gnomad_max_subpop=mt_filtered._vat.gnomad_max_subpop,
-
-                # Clinical / functional annotations from VAT
-                clinvar_classification=mt_filtered._vat.clinvar_classification,
-                clinvar_phenotype=mt_filtered._vat.clinvar_phenotype, 
-                omim_phenotypes_id=mt_filtered._vat.omim_phenotypes_id,
-                gene_omim_id=mt_filtered._vat.gene_omim_id,
-                consequence=mt_filtered._vat.consequence,
-                revel=mt_filtered._vat.revel,
-                aa_change=mt_filtered._vat.aa_change,
-                LoF=mt_filtered._vat.LoF,
-                LoF_filter=mt_filtered._vat.LoF_filter,
-                LoF_flags=mt_filtered._vat.LoF_flags,
-                LoF_info=mt_filtered._vat.LoF_info,
-                rsid=mt_filtered._vat.rsid,
-
-                # SpliceAI scores and distances from VAT
-                splice_ai_acceptor_gain_score=mt_filtered._vat.splice_ai_acceptor_gain_score,
-                splice_ai_acceptor_loss_score=mt_filtered._vat.splice_ai_acceptor_loss_score,
-                splice_ai_donor_gain_score=mt_filtered._vat.splice_ai_donor_gain_score,
-                splice_ai_donor_loss_score=mt_filtered._vat.splice_ai_donor_loss_score,
-                splice_ai_acceptor_gain_distance=mt_filtered._vat.splice_ai_acceptor_gain_distance,
-                splice_ai_acceptor_loss_distance=mt_filtered._vat.splice_ai_acceptor_loss_distance,
-                splice_ai_donor_gain_distance=mt_filtered._vat.splice_ai_donor_gain_distance,
-                splice_ai_donor_loss_distance=mt_filtered._vat.splice_ai_donor_loss_distance,
-            )
-        ).drop("_vat")
+    mt_filtered = mt_filtered.annotate_rows(info=mt_filtered.info.annotate(**info_fields))
+    if annotate_with_vat:
+        mt_filtered = mt_filtered.drop("_vat")
     # get rid of unneeded fields for matrix table save
     mt_filtered = mt_filtered.drop("variant_qc","total")
     
@@ -423,7 +364,8 @@ if __name__ == "__main__":
     parser.add_argument("--MaxAlleleCount", required=True, help="Max Allele count threshold.")
     parser.add_argument("--BedFile", required=False, help="Bed file containing regions of interest, typically cis windows for genes")
     parser.add_argument("--AlleleNumberPercentage", required=True, help="Allele number percentage cutoff.")
-    parser.add_argument("--VATHailTable", required=True, help="Path to pre-computed Hail table from AoU VAT with per-ancestry and cohort AC/AN/AF columns")
+    parser.add_argument("--VATHailTable", required=False, help="Path to pre-computed Hail table from AoU VAT with per-ancestry and cohort AC/AN/AF columns")
+    parser.add_argument("--SkipVATAnnotations", action='store_true', help="Skip loading VAT and omit VAT-derived annotation fields from TSV/VCF output.")
     parser.add_argument("--OutputBucket", required=True, help="Path to output VCF bucket.")
     parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")
     parser.add_argument("--CloudTmpdir", required=True, help="Temporary directory for spark/hail to work with.")
@@ -433,4 +375,6 @@ if __name__ == "__main__":
     parser.add_argument("--SparkShufflePartitions", type=_positive_int, default=100, help="Spark SQL shuffle partitions.")
 
     args = parser.parse_args()
+    if not args.SkipVATAnnotations and not args.VATHailTable:
+        parser.error("--VATHailTable is required unless --SkipVATAnnotations is set.")
     main(args)
