@@ -11,7 +11,9 @@ task IndexVCF {
    
     command <<<
         set -euo pipefail
-        bcftools index --tbi --force "~{VCF}"
+        bcftools index --tbi --force \
+            --output "~{Prefix}.vcf.bgz.tbi" \
+            "~{VCF}"
     >>>
     
     runtime {
