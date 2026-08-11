@@ -46,6 +46,7 @@ workflow FilterMT {
 
     output {
         File PathVCF = TaskFilterMT.PathVCF
+        File PathAnnotations = TaskFilterMT.PathAnnotations
     }
 }
 
@@ -102,5 +103,6 @@ task TaskFilterMT {
     
     output {
         File PathVCF = read_string('outpath.txt')
+        File PathAnnotations = read_string('annotations_outpath.txt')
     }
 }
