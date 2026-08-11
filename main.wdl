@@ -165,6 +165,7 @@ workflow FilterMTAndExportToVCF{
     output {
         File PathVCF = filter.PathVCF
         File PathAnnotations = filter.PathAnnotations
+        File? TranscriptAnnotations = filter.TranscriptAnnotations
         File Index = IndexVCF.Index
         File VCFIndex = IndexVCF.Index
         File AnnotationIndex = IndexAnnotations.Index
