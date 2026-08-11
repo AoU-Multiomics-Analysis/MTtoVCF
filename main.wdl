@@ -32,6 +32,35 @@ task IndexVCF {
     }
 }
 
+task IndexAnnotations {
+    input {
+        File Annotations
+        String IndexDestination
+        String UtilsImageTag
+        Float IndexDiskMultiplier
+        Int IndexDiskOverheadGiB
+        Int IndexMinDiskGiB
+    }
+
+    Int CalculatedDiskGiB = ceil(size(Annotations, "GiB") * IndexDiskMultiplier) + IndexDiskOverheadGiB
+    Int IndexDiskGiB = if CalculatedDiskGiB > IndexMinDiskGiB then CalculatedDiskGiB else IndexMinDiskGiB
+
+    command <<<
+        /index_annotations.sh "~{Annotations}" "~{IndexDestination}"
+    >>>
+
+    runtime {
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils:" + UtilsImageTag
+        memory: "256G"
+        cpu: 64
+        disks: "local-disk ~{IndexDiskGiB} SSD"
+    }
+
+    output {
+        File Index = read_string("index_outpath.txt")
+    }
+}
+
 
 workflow FilterMTAndExportToVCF{
     meta {
@@ -79,6 +108,7 @@ workflow FilterMTAndExportToVCF{
     String FullPrefix = "~{OutputPrefix}.~{SampleSetName}.AC~{MinAlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic.~{CallSetName}"
     String NormalizedOutputBucket = sub(OutputBucket, "/+$", "")
     String VCFIndexDestination = NormalizedOutputBucket + "/" + FullPrefix + ".vcf.bgz.tbi"
+    String AnnotationIndexDestination = NormalizedOutputBucket + "/" + FullPrefix + ".annotations.tsv.bgz.tbi"
 
     call FilterMT.FilterMT as filter {
         input:
@@ -112,6 +142,16 @@ workflow FilterMTAndExportToVCF{
             IndexMinDiskGiB = IndexMinDiskGiB
     }
 
+   call IndexAnnotations {
+        input:
+            Annotations = filter.PathAnnotations,
+            IndexDestination = AnnotationIndexDestination,
+            UtilsImageTag = UtilsImageTag,
+            IndexDiskMultiplier = IndexDiskMultiplier,
+            IndexDiskOverheadGiB = IndexDiskOverheadGiB,
+            IndexMinDiskGiB = IndexMinDiskGiB
+    }
+
    call VCFPostProcess.VCFPostProcess as postprocess {
         input:
             vcf_file = filter.PathVCF,
@@ -124,8 +164,10 @@ workflow FilterMTAndExportToVCF{
 
     output {
         File PathVCF = filter.PathVCF
+        File PathAnnotations = filter.PathAnnotations
         File Index = IndexVCF.Index
         File VCFIndex = IndexVCF.Index
+        File AnnotationIndex = IndexAnnotations.Index
         File? GenotypeDosage = postprocess.GenotypeDosage
         File? GenotypeDosageIndex = postprocess.GenotypeDosageIndex
         File? PlinkPgen = postprocess.PlinkPgen
