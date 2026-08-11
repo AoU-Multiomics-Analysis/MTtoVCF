@@ -21,6 +21,7 @@ docker run --rm \
         /index_vcf.sh /data/tiny.vcf.bgz /data/published/tiny.vcf.bgz.tbi
         test "$(cat index_outpath.txt)" = "/data/published/tiny.vcf.bgz.tbi"
         ln -s /data/tiny.vcf.bgz tiny.vcf.bgz
+        rm -f tiny.vcf.bgz.tbi
         ln -s /data/published/tiny.vcf.bgz.tbi tiny.vcf.bgz.tbi
         bcftools view --no-header --regions chr1:100-100 tiny.vcf.bgz |
             grep -q "^chr1[[:space:]]100[[:space:]]"
