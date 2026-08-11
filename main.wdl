@@ -64,8 +64,12 @@ workflow FilterMTAndExportToVCF{
         # Optional VCF post-processing
         Boolean MakeDosage = false
         Boolean MakePlink = false
+        Boolean MakeLoFCarriers = false
         Int DosageThreads = 4
         Int PlinkNewIdMaxAlleleLen = 200
+        Int LoFCarrierThreads = 4
+        String LoFCarrierTaskMemory = "32G"
+        String LoFCarrierTaskDisk = "local-disk 500 SSD"
     }
 
     String FullPrefix = "~{OutputPrefix}.~{SampleSetName}.AC~{MinAlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic.~{CallSetName}"
@@ -101,11 +105,17 @@ workflow FilterMTAndExportToVCF{
    call VCFPostProcess.VCFPostProcess as postprocess {
         input:
             vcf_file = filter.PathVCF,
+            vcf_index = IndexVCF.Index,
+            transcript_annotations_tsv = filter.TranscriptAnnotations,
             output_prefix = FullPrefix,
             make_dosage = MakeDosage,
             make_plink = MakePlink,
+            make_lof_carriers = MakeLoFCarriers && AnnotateWithVAT,
             dosage_threads = DosageThreads,
-            plink_new_id_max_allele_len = PlinkNewIdMaxAlleleLen
+            plink_new_id_max_allele_len = PlinkNewIdMaxAlleleLen,
+            lof_carrier_threads = LoFCarrierThreads,
+            lof_carrier_task_memory = LoFCarrierTaskMemory,
+            lof_carrier_task_disk = LoFCarrierTaskDisk
     }
 
     output {
@@ -117,6 +127,8 @@ workflow FilterMTAndExportToVCF{
         File? PlinkPgen = postprocess.PlinkPgen
         File? PlinkPvar = postprocess.PlinkPvar
         File? PlinkPsam = postprocess.PlinkPsam
+        File? LoFCarriersHC = postprocess.LoFCarriersHC
+        File? LoFCarriersHCOrLC = postprocess.LoFCarriersHCOrLC
     }
 }
 

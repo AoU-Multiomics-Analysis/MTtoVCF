@@ -1,13 +1,21 @@
 version 1.0
 
+import "LoFCarrierTable.wdl" as LoFCarrierTable
+
 workflow VCFPostProcess {
     input {
         File vcf_file
+        File? vcf_index
+        File? transcript_annotations_tsv
         String output_prefix
         Boolean make_dosage = false
         Boolean make_plink = false
+        Boolean make_lof_carriers = false
         Int dosage_threads = 4
         Int plink_new_id_max_allele_len = 200
+        Int lof_carrier_threads = 4
+        String lof_carrier_task_memory = "32G"
+        String lof_carrier_task_disk = "local-disk 500 SSD"
     }
 
     if (make_dosage) {
@@ -28,12 +36,27 @@ workflow VCFPostProcess {
         }
     }
 
+    if (make_lof_carriers) {
+        call LoFCarrierTable.ExtractLoFCarriers as LoFCarriers {
+            input:
+                vcf_file = vcf_file,
+                vcf_index = select_first([vcf_index]),
+                transcript_annotations_tsv = select_first([transcript_annotations_tsv]),
+                output_prefix = output_prefix,
+                threads = lof_carrier_threads,
+                task_memory = lof_carrier_task_memory,
+                task_disk = lof_carrier_task_disk
+        }
+    }
+
     output {
         File? GenotypeDosage = BcftoolsDosage.dosage
         File? GenotypeDosageIndex = BcftoolsDosage.dosage_index
         File? PlinkPgen = Plink2.pgen
         File? PlinkPvar = Plink2.pvar
         File? PlinkPsam = Plink2.psam
+        File? LoFCarriersHC = LoFCarriers.lof_carriers_hc
+        File? LoFCarriersHCOrLC = LoFCarriers.lof_carriers_hc_or_lc
     }
 }
 

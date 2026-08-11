@@ -58,6 +58,24 @@ class TranscriptVatContractTests(unittest.TestCase):
             source,
         )
 
+    def test_main_workflow_exposes_lof_carrier_outputs(self):
+        source = (ROOT / "main.wdl").read_text()
+        self.assertIn("Boolean MakeLoFCarriers = false", source)
+        self.assertIn("Int LoFCarrierThreads = 4", source)
+        self.assertIn("vcf_index = IndexVCF.Index", source)
+        self.assertIn(
+            "make_lof_carriers = MakeLoFCarriers && AnnotateWithVAT",
+            source,
+        )
+        self.assertIn(
+            "File? LoFCarriersHC = postprocess.LoFCarriersHC",
+            source,
+        )
+        self.assertIn(
+            "File? LoFCarriersHCOrLC = postprocess.LoFCarriersHCOrLC",
+            source,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
