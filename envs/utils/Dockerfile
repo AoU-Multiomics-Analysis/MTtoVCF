@@ -5,6 +5,7 @@ ENV MAMBA_DOCKERFILE_ACTIVATE=1
 ENV PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ## Create a new environment and install packages
 RUN micromamba install -y -n base -c conda-forge -c bioconda \
+    conda-forge::google-cloud-sdk=579.0.0 \
     conda-forge::r-tidyverse \
     conda-forge::r-data.table \
     conda-forge::r-optparse \
@@ -16,4 +17,4 @@ RUN micromamba install -y -n base -c conda-forge -c bioconda \
     bioconda::bcftools \
     bioconda::tabix 
 
-COPY scripts/*  . 
+COPY scripts/* /

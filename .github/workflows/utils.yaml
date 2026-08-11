@@ -3,13 +3,17 @@ name: Docker Image CI
 on:
   push:
     paths:
-      - 'scripts/**'  # Trigger on changes in the scripts directory
+      - 'scripts/**'
+      - 'envs/utils/Dockerfile'
+      - '.github/workflows/utils.yaml'
     branches: 
       - main
       - develop
   pull_request:
     paths:
-      - 'scripts/**'  # Trigger on pull requests that affect the scripts directory
+      - 'scripts/**'
+      - 'envs/utils/Dockerfile'
+      - '.github/workflows/utils.yaml'
     branches: 
       - main
 

@@ -6,25 +6,58 @@ import "workflow/VCFPostProcess.wdl" as VCFPostProcess
 task IndexVCF {
     input {
         File VCF
-        String Prefix
+        String IndexDestination
+        String UtilsImageTag
+        Float IndexDiskMultiplier
+        Int IndexDiskOverheadGiB
+        Int IndexMinDiskGiB
     }
-   
+
+    Int CalculatedDiskGiB = ceil(size(VCF, "GiB") * IndexDiskMultiplier) + IndexDiskOverheadGiB
+    Int IndexDiskGiB = if CalculatedDiskGiB > IndexMinDiskGiB then CalculatedDiskGiB else IndexMinDiskGiB
+
     command <<<
-        set -euo pipefail
-        bcftools index --tbi --force \
-            --output "~{Prefix}.vcf.bgz.tbi" \
-            "~{VCF}"
+        /index_vcf.sh "~{VCF}" "~{IndexDestination}"
     >>>
-    
+
     runtime {
-        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils" 
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils:" + UtilsImageTag
         memory: "256G"
         cpu: 64
-        disks: "local-disk 1000 SSD"
+        disks: "local-disk ~{IndexDiskGiB} SSD"
     }
-    
+
     output {
-        File Index =  "~{Prefix}.vcf.bgz.tbi"
+        File Index = read_string("index_outpath.txt")
+    }
+}
+
+task IndexAnnotations {
+    input {
+        File Annotations
+        String IndexDestination
+        String UtilsImageTag
+        Float IndexDiskMultiplier
+        Int IndexDiskOverheadGiB
+        Int IndexMinDiskGiB
+    }
+
+    Int CalculatedDiskGiB = ceil(size(Annotations, "GiB") * IndexDiskMultiplier) + IndexDiskOverheadGiB
+    Int IndexDiskGiB = if CalculatedDiskGiB > IndexMinDiskGiB then CalculatedDiskGiB else IndexMinDiskGiB
+
+    command <<<
+        /index_annotations.sh "~{Annotations}" "~{IndexDestination}"
+    >>>
+
+    runtime {
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils:" + UtilsImageTag
+        memory: "256G"
+        cpu: 64
+        disks: "local-disk ~{IndexDiskGiB} SSD"
+    }
+
+    output {
+        File Index = read_string("index_outpath.txt")
     }
 }
 
@@ -52,6 +85,10 @@ workflow FilterMTAndExportToVCF{
         String OutputPrefix
         String CloudTmpdir
         String Branch = "main"
+        String UtilsImageTag = "main"
+        Float IndexDiskMultiplier = 2.0
+        Int IndexDiskOverheadGiB = 10
+        Int IndexMinDiskGiB = 20
 
         # Runtime params for the Hail filter task
         Int FilterTaskCpu = 64
@@ -69,6 +106,9 @@ workflow FilterMTAndExportToVCF{
     }
 
     String FullPrefix = "~{OutputPrefix}.~{SampleSetName}.AC~{MinAlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic.~{CallSetName}"
+    String NormalizedOutputBucket = sub(OutputBucket, "/+$", "")
+    String VCFIndexDestination = NormalizedOutputBucket + "/" + FullPrefix + ".vcf.bgz.tbi"
+    String AnnotationIndexDestination = NormalizedOutputBucket + "/" + FullPrefix + ".annotations.tsv.bgz.tbi"
 
     call FilterMT.FilterMT as filter {
         input:
@@ -95,7 +135,21 @@ workflow FilterMTAndExportToVCF{
    call IndexVCF {
         input:
             VCF = filter.PathVCF,
-            Prefix = FullPrefix
+            IndexDestination = VCFIndexDestination,
+            UtilsImageTag = UtilsImageTag,
+            IndexDiskMultiplier = IndexDiskMultiplier,
+            IndexDiskOverheadGiB = IndexDiskOverheadGiB,
+            IndexMinDiskGiB = IndexMinDiskGiB
+    }
+
+   call IndexAnnotations {
+        input:
+            Annotations = filter.PathAnnotations,
+            IndexDestination = AnnotationIndexDestination,
+            UtilsImageTag = UtilsImageTag,
+            IndexDiskMultiplier = IndexDiskMultiplier,
+            IndexDiskOverheadGiB = IndexDiskOverheadGiB,
+            IndexMinDiskGiB = IndexMinDiskGiB
     }
 
    call VCFPostProcess.VCFPostProcess as postprocess {
@@ -110,8 +164,11 @@ workflow FilterMTAndExportToVCF{
 
     output {
         File PathVCF = filter.PathVCF
+        File PathAnnotations = filter.PathAnnotations
         File? TranscriptAnnotations = filter.TranscriptAnnotations
         File Index = IndexVCF.Index
+        File VCFIndex = IndexVCF.Index
+        File AnnotationIndex = IndexAnnotations.Index
         File? GenotypeDosage = postprocess.GenotypeDosage
         File? GenotypeDosageIndex = postprocess.GenotypeDosageIndex
         File? PlinkPgen = postprocess.PlinkPgen

@@ -2,6 +2,7 @@ import csv
 import gzip
 import importlib.util
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 
@@ -14,6 +15,7 @@ if hl is not None and not hasattr(hl, "init"):
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
 EXPECTED_COLUMNS = [
     "chrom",
     "pos",

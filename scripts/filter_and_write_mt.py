@@ -1,5 +1,6 @@
 import hail as hl
 import argparse
+from output_manifest import write_output_manifest
 
 
 def _positive_int(value):
@@ -401,6 +402,7 @@ def main(args):
     # Export annotations
     annotations_tsv = _join_cloud_path(args.OutputBucket, f'{args.OutputPrefix}.annotations.tsv.bgz')
     annotations_ht.export(annotations_tsv)
+    write_output_manifest('annotations_outpath.txt', annotations_tsv)
 
     info_fields = {
         'ALL_p_value_hwe': mt_filtered.total.ALL_p_value_hwe,
@@ -428,8 +430,7 @@ def main(args):
     OutputFilePath = _join_cloud_path(args.OutputBucket, f'{args.OutputPrefix}.vcf.bgz')
     hl.export_vcf(mt_filtered, OutputFilePath)
 
-    with open('outpath.txt', 'w') as file:
-        file.write(OutputFilePath)
+    write_output_manifest('outpath.txt', OutputFilePath)
 
     hl.stop()
 

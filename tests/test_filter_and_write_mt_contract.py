@@ -5,6 +5,7 @@ import types
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
 sys.modules.setdefault("hail", types.ModuleType("hail"))
 SPEC = importlib.util.spec_from_file_location(
     "filter_and_write_mt", ROOT / "scripts" / "filter_and_write_mt.py"
