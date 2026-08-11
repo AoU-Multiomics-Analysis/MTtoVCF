@@ -111,6 +111,10 @@ def _prepare_vat_tables(vat_hail_table):
             + ", ".join(missing_fields)
         )
 
+    # Source VAT tables may be keyed by (vid, transcript). Remove that source
+    # key before projections so converted fields can safely retain those names.
+    vat_source_ht = vat_source_ht.key_by()
+
     # Parse the variant identifier (vid) into locus + alleles so we can join
     # with the matrix table.  Expected vid format: contig-position-ref-alt
     # Use maxsplit=3 so dashes inside allele strings are preserved.
@@ -240,6 +244,24 @@ def _prepare_vat_tables(vat_hail_table):
     return variant_ht.key_by('locus', 'alleles'), transcript_ht
 
 
+def _prepare_transcript_annotations(transcript_vat_ht, filtered_variant_keys):
+    transcript_annotations_ht = transcript_vat_ht.semi_join(filtered_variant_keys)
+    transcript_annotations_ht = transcript_annotations_ht.annotate(
+        chrom=transcript_annotations_ht.locus.contig,
+        pos=transcript_annotations_ht.locus.position,
+        ref=transcript_annotations_ht.alleles[0],
+        alt=transcript_annotations_ht.alleles[1],
+    )
+    transcript_annotations_ht = transcript_annotations_ht.order_by(
+        transcript_annotations_ht.locus,
+        transcript_annotations_ht.alleles,
+        transcript_annotations_ht.transcript,
+    )
+    return transcript_annotations_ht.select(
+        "chrom", "pos", "ref", "alt", *TRANSCRIPT_ANNOTATION_FIELDS
+    )
+
+
 # init
 def main(args):
     # Initialize Hail with workflow-configurable local Spark resources.
@@ -328,15 +350,8 @@ def main(args):
         mt_filtered = mt_filtered.annotate_rows(_vat=vat_ht[mt_filtered.row_key])
 
         filtered_variant_keys = mt_filtered.rows().select()
-        transcript_annotations_ht = transcript_vat_ht.semi_join(filtered_variant_keys)
-        transcript_annotations_ht = transcript_annotations_ht.annotate(
-            chrom=transcript_annotations_ht.locus.contig,
-            pos=transcript_annotations_ht.locus.position,
-            ref=transcript_annotations_ht.alleles[0],
-            alt=transcript_annotations_ht.alleles[1],
-        )
-        transcript_annotations_ht = transcript_annotations_ht.key_by().select(
-            "chrom", "pos", "ref", "alt", *TRANSCRIPT_ANNOTATION_FIELDS
+        transcript_annotations_ht = _prepare_transcript_annotations(
+            transcript_vat_ht, filtered_variant_keys
         )
         transcript_annotations_tsv = _join_cloud_path(
             args.OutputBucket,
