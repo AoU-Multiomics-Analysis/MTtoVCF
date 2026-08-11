@@ -6,24 +6,29 @@ import "workflow/VCFPostProcess.wdl" as VCFPostProcess
 task IndexVCF {
     input {
         File VCF
+        String IndexDestination
+        String UtilsImageTag
+        Float IndexDiskMultiplier
+        Int IndexDiskOverheadGiB
+        Int IndexMinDiskGiB
     }
-   
+
+    Int CalculatedDiskGiB = ceil(size(VCF, "GiB") * IndexDiskMultiplier) + IndexDiskOverheadGiB
+    Int IndexDiskGiB = if CalculatedDiskGiB > IndexMinDiskGiB then CalculatedDiskGiB else IndexMinDiskGiB
+
     command <<<
-        set -euo pipefail
-        bcftools index --tbi --force \
-            --output "~{basename(VCF)}.tbi" \
-            "~{VCF}"
+        /index_vcf.sh "~{VCF}" "~{IndexDestination}"
     >>>
-    
+
     runtime {
-        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils" 
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils:" + UtilsImageTag
         memory: "256G"
         cpu: 64
-        disks: "local-disk 1000 SSD"
+        disks: "local-disk ~{IndexDiskGiB} SSD"
     }
-    
+
     output {
-        File Index =  "~{basename(VCF)}.tbi"
+        File Index = read_string("index_outpath.txt")
     }
 }
 
@@ -51,6 +56,10 @@ workflow FilterMTAndExportToVCF{
         String OutputPrefix
         String CloudTmpdir
         String Branch = "main"
+        String UtilsImageTag = "main"
+        Float IndexDiskMultiplier = 2.0
+        Int IndexDiskOverheadGiB = 10
+        Int IndexMinDiskGiB = 20
 
         # Runtime params for the Hail filter task
         Int FilterTaskCpu = 64
@@ -68,6 +77,8 @@ workflow FilterMTAndExportToVCF{
     }
 
     String FullPrefix = "~{OutputPrefix}.~{SampleSetName}.AC~{MinAlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic.~{CallSetName}"
+    String NormalizedOutputBucket = sub(OutputBucket, "/+$", "")
+    String VCFIndexDestination = NormalizedOutputBucket + "/" + FullPrefix + ".vcf.bgz.tbi"
 
     call FilterMT.FilterMT as filter {
         input:
@@ -93,7 +104,12 @@ workflow FilterMTAndExportToVCF{
 
    call IndexVCF {
         input:
-            VCF = filter.PathVCF
+            VCF = filter.PathVCF,
+            IndexDestination = VCFIndexDestination,
+            UtilsImageTag = UtilsImageTag,
+            IndexDiskMultiplier = IndexDiskMultiplier,
+            IndexDiskOverheadGiB = IndexDiskOverheadGiB,
+            IndexMinDiskGiB = IndexMinDiskGiB
     }
 
    call VCFPostProcess.VCFPostProcess as postprocess {
@@ -109,6 +125,7 @@ workflow FilterMTAndExportToVCF{
     output {
         File PathVCF = filter.PathVCF
         File Index = IndexVCF.Index
+        File VCFIndex = IndexVCF.Index
         File? GenotypeDosage = postprocess.GenotypeDosage
         File? GenotypeDosageIndex = postprocess.GenotypeDosageIndex
         File? PlinkPgen = postprocess.PlinkPgen
