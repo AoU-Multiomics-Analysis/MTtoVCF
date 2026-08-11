@@ -17,7 +17,7 @@ task IndexVCF {
     >>>
     
     runtime {
-        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils" 
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils:main"
         memory: "256G"
         cpu: 64
         disks: "local-disk 1000 SSD"
