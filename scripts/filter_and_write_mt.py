@@ -79,28 +79,54 @@ VAT_ANNOTATION_FIELDS = (
 )
 
 
-def _prepare_vat_ht(vat_hail_table):
+TRANSCRIPT_ANNOTATION_FIELDS = (
+    "rsid", "gene_id", "gene_symbol", "transcript",
+    "is_canonical_transcript", "consequence", "aa_change",
+    "LoF", "LoF_filter", "LoF_flags", "LoF_info",
+    "gvs_max_af", "gvs_max_subpop",
+)
+
+REQUIRED_TRANSCRIPT_VAT_FIELDS = (
+    "vid", "dbsnp_rsid", "gene_id", "gene_symbol", "transcript",
+    "is_canonical_transcript", "consequence", "aa_change",
+    "LoF", "LoF_filter", "LoF_flags", "LoF_info",
+    "gvs_max_af", "gvs_max_subpop",
+)
+
+
+def _missing_transcript_vat_fields(available_fields):
+    return sorted(set(REQUIRED_TRANSCRIPT_VAT_FIELDS) - set(available_fields))
+
+
+def _prepare_vat_tables(vat_hail_table):
     # Load pre-computed VAT Hail table for annotation.
     # This table is created from the AoU Variant Annotation Table (VAT) using
     # the TSVtoHailTable workflow.
-    vat_ht = hl.read_table(vat_hail_table)
+    vat_source_ht = hl.read_table(vat_hail_table)
+    available_fields = set(vat_source_ht.row.dtype)
+    missing_fields = _missing_transcript_vat_fields(available_fields)
+    if missing_fields:
+        raise ValueError(
+            "VAT Hail Table is missing required transcript annotation fields: "
+            + ", ".join(missing_fields)
+        )
 
     # Parse the variant identifier (vid) into locus + alleles so we can join
     # with the matrix table.  Expected vid format: contig-position-ref-alt
     # Use maxsplit=3 so dashes inside allele strings are preserved.
     # The VAT may use contigs without the 'chr' prefix (e.g. '1' instead of
     # 'chr1'), so add the prefix when it is missing to match GRCh38.
-    vat_ht = vat_ht.annotate(_parts=vat_ht.vid.split('-', 4))
-    vat_ht = vat_ht.annotate(
+    vat_source_ht = vat_source_ht.annotate(_parts=vat_source_ht.vid.split('-', 4))
+    vat_source_ht = vat_source_ht.annotate(
         locus=hl.locus(
             hl.if_else(
-                vat_ht._parts[0].startswith('chr'),
-                vat_ht._parts[0],
-                'chr' + vat_ht._parts[0]
+                vat_source_ht._parts[0].startswith('chr'),
+                vat_source_ht._parts[0],
+                'chr' + vat_source_ht._parts[0]
             ),
-            hl.int32(vat_ht._parts[1]),
+            hl.int32(vat_source_ht._parts[1]),
             reference_genome='GRCh38'),
-        alleles=[vat_ht._parts[2], vat_ht._parts[3]]
+        alleles=[vat_source_ht._parts[2], vat_source_ht._parts[3]]
     )
 
     # Fixed set of VAT fields to carry forward as annotations.
@@ -122,79 +148,96 @@ def _prepare_vat_ht(vat_hail_table):
         expr = hl.if_else(hl.is_defined(expr), expr.replace('=', ':'), expr)
         return expr
 
-    vat_ht = vat_ht.select(
+    variant_ht = vat_source_ht.select(
         'locus',
         'alleles',
         # GVS population frequencies
-        gvs_all_ac=_cast_to_int(vat_ht.gvs_all_ac),
-        gvs_all_an=_cast_to_int(vat_ht.gvs_all_an),
-        gvs_all_af=_cast_to_float(vat_ht.gvs_all_af),
-        gvs_max_ac=_cast_to_int(vat_ht.gvs_max_ac),
-        gvs_max_an=_cast_to_int(vat_ht.gvs_max_an),
-        gvs_max_af=_cast_to_float(vat_ht.gvs_max_af),
-        gvs_max_subpop=_cast_to_str(vat_ht.gvs_max_subpop),
+        gvs_all_ac=_cast_to_int(vat_source_ht.gvs_all_ac),
+        gvs_all_an=_cast_to_int(vat_source_ht.gvs_all_an),
+        gvs_all_af=_cast_to_float(vat_source_ht.gvs_all_af),
+        gvs_max_ac=_cast_to_int(vat_source_ht.gvs_max_ac),
+        gvs_max_an=_cast_to_int(vat_source_ht.gvs_max_an),
+        gvs_max_af=_cast_to_float(vat_source_ht.gvs_max_af),
+        gvs_max_subpop=_cast_to_str(vat_source_ht.gvs_max_subpop),
 
         # GVS subpopulation frequencies
-        gvs_afr_af=_cast_to_float(vat_ht.gvs_afr_af),
-        gvs_amr_af=_cast_to_float(vat_ht.gvs_amr_af),
-        gvs_eas_af=_cast_to_float(vat_ht.gvs_eas_af),
-        gvs_eur_af=_cast_to_float(vat_ht.gvs_eur_af),
-        gvs_mid_af=_cast_to_float(vat_ht.gvs_mid_af),
-        gvs_sas_af=_cast_to_float(vat_ht.gvs_sas_af),
-        gvs_oth_af=_cast_to_float(vat_ht.gvs_oth_af),
+        gvs_afr_af=_cast_to_float(vat_source_ht.gvs_afr_af),
+        gvs_amr_af=_cast_to_float(vat_source_ht.gvs_amr_af),
+        gvs_eas_af=_cast_to_float(vat_source_ht.gvs_eas_af),
+        gvs_eur_af=_cast_to_float(vat_source_ht.gvs_eur_af),
+        gvs_mid_af=_cast_to_float(vat_source_ht.gvs_mid_af),
+        gvs_sas_af=_cast_to_float(vat_source_ht.gvs_sas_af),
+        gvs_oth_af=_cast_to_float(vat_source_ht.gvs_oth_af),
 
         # GVS subpopulation allele number
-        gvs_afr_an=_cast_to_float(vat_ht.gvs_afr_an),
-        gvs_amr_an=_cast_to_float(vat_ht.gvs_amr_an),
-        gvs_eas_an=_cast_to_float(vat_ht.gvs_eas_an),
-        gvs_eur_an=_cast_to_float(vat_ht.gvs_eur_an),
-        gvs_mid_an=_cast_to_float(vat_ht.gvs_mid_an),
-        gvs_sas_an=_cast_to_float(vat_ht.gvs_sas_an),
-        gvs_oth_an=_cast_to_float(vat_ht.gvs_oth_an),
+        gvs_afr_an=_cast_to_float(vat_source_ht.gvs_afr_an),
+        gvs_amr_an=_cast_to_float(vat_source_ht.gvs_amr_an),
+        gvs_eas_an=_cast_to_float(vat_source_ht.gvs_eas_an),
+        gvs_eur_an=_cast_to_float(vat_source_ht.gvs_eur_an),
+        gvs_mid_an=_cast_to_float(vat_source_ht.gvs_mid_an),
+        gvs_sas_an=_cast_to_float(vat_source_ht.gvs_sas_an),
+        gvs_oth_an=_cast_to_float(vat_source_ht.gvs_oth_an),
 
         # GVS subpopulation allele counts
-        gvs_afr_ac=_cast_to_float(vat_ht.gvs_afr_ac),
-        gvs_amr_ac=_cast_to_float(vat_ht.gvs_amr_ac),
-        gvs_eas_ac=_cast_to_float(vat_ht.gvs_eas_ac),
-        gvs_eur_ac=_cast_to_float(vat_ht.gvs_eur_ac),
-        gvs_mid_ac=_cast_to_float(vat_ht.gvs_mid_ac),
-        gvs_sas_ac=_cast_to_float(vat_ht.gvs_sas_ac),
-        gvs_oth_ac=_cast_to_float(vat_ht.gvs_oth_ac),
+        gvs_afr_ac=_cast_to_float(vat_source_ht.gvs_afr_ac),
+        gvs_amr_ac=_cast_to_float(vat_source_ht.gvs_amr_ac),
+        gvs_eas_ac=_cast_to_float(vat_source_ht.gvs_eas_ac),
+        gvs_eur_ac=_cast_to_float(vat_source_ht.gvs_eur_ac),
+        gvs_mid_ac=_cast_to_float(vat_source_ht.gvs_mid_ac),
+        gvs_sas_ac=_cast_to_float(vat_source_ht.gvs_sas_ac),
+        gvs_oth_ac=_cast_to_float(vat_source_ht.gvs_oth_ac),
 
         # gnomAD population frequencies
-        gnomad_all_ac=_cast_to_int(vat_ht.gnomad_all_ac),
-        gnomad_all_an=_cast_to_int(vat_ht.gnomad_all_an),
-        gnomad_all_af=_cast_to_float(vat_ht.gnomad_all_af),
-        gnomad_max_ac=_cast_to_int(vat_ht.gnomad_max_ac),
-        gnomad_max_an=_cast_to_int(vat_ht.gnomad_max_an),
-        gnomad_max_af=_cast_to_float(vat_ht.gnomad_max_af),
-        gnomad_max_subpop=_cast_to_str(vat_ht.gnomad_max_subpop),
+        gnomad_all_ac=_cast_to_int(vat_source_ht.gnomad_all_ac),
+        gnomad_all_an=_cast_to_int(vat_source_ht.gnomad_all_an),
+        gnomad_all_af=_cast_to_float(vat_source_ht.gnomad_all_af),
+        gnomad_max_ac=_cast_to_int(vat_source_ht.gnomad_max_ac),
+        gnomad_max_an=_cast_to_int(vat_source_ht.gnomad_max_an),
+        gnomad_max_af=_cast_to_float(vat_source_ht.gnomad_max_af),
+        gnomad_max_subpop=_cast_to_str(vat_source_ht.gnomad_max_subpop),
 
         # Clinical / functional annotations
-        clinvar_classification=_cast_to_str(vat_ht.clinvar_classification),
-        clinvar_phenotype=sanitize_info(vat_ht.clinvar_phenotype),
-        omim_phenotypes_id=_cast_to_str(vat_ht.omim_phenotypes_id),
-        gene_omim_id=_cast_to_str(vat_ht.gene_omim_id),
-        consequence=_cast_to_str(vat_ht.consequence),
-        revel=_cast_to_float(vat_ht.revel),
-        aa_change=_cast_to_str(vat_ht.aa_change),
-        LoF=_cast_to_str(vat_ht.LoF),
-        LoF_filter=sanitize_info(vat_ht.LoF_filter),
-        LoF_flags=sanitize_info(vat_ht.LoF_flags),
-        LoF_info=sanitize_info(vat_ht.LoF_info),
-        rsid=_cast_to_str(vat_ht.dbsnp_rsid),
+        clinvar_classification=_cast_to_str(vat_source_ht.clinvar_classification),
+        clinvar_phenotype=sanitize_info(vat_source_ht.clinvar_phenotype),
+        omim_phenotypes_id=_cast_to_str(vat_source_ht.omim_phenotypes_id),
+        gene_omim_id=_cast_to_str(vat_source_ht.gene_omim_id),
+        consequence=_cast_to_str(vat_source_ht.consequence),
+        revel=_cast_to_float(vat_source_ht.revel),
+        aa_change=_cast_to_str(vat_source_ht.aa_change),
+        LoF=_cast_to_str(vat_source_ht.LoF),
+        LoF_filter=sanitize_info(vat_source_ht.LoF_filter),
+        LoF_flags=sanitize_info(vat_source_ht.LoF_flags),
+        LoF_info=sanitize_info(vat_source_ht.LoF_info),
+        rsid=_cast_to_str(vat_source_ht.dbsnp_rsid),
 
         # SpliceAI scores and distances
-        splice_ai_acceptor_gain_score=_cast_to_float(vat_ht.splice_ai_acceptor_gain_score),
-        splice_ai_acceptor_loss_score=_cast_to_float(vat_ht.splice_ai_acceptor_loss_score),
-        splice_ai_donor_gain_score=_cast_to_float(vat_ht.splice_ai_donor_gain_score),
-        splice_ai_donor_loss_score=_cast_to_float(vat_ht.splice_ai_donor_loss_score),
-        splice_ai_acceptor_gain_distance=_cast_to_int(vat_ht.splice_ai_acceptor_gain_distance),
-        splice_ai_acceptor_loss_distance=_cast_to_int(vat_ht.splice_ai_acceptor_loss_distance),
-        splice_ai_donor_gain_distance=_cast_to_int(vat_ht.splice_ai_donor_gain_distance),
-        splice_ai_donor_loss_distance=_cast_to_int(vat_ht.splice_ai_donor_loss_distance)
+        splice_ai_acceptor_gain_score=_cast_to_float(vat_source_ht.splice_ai_acceptor_gain_score),
+        splice_ai_acceptor_loss_score=_cast_to_float(vat_source_ht.splice_ai_acceptor_loss_score),
+        splice_ai_donor_gain_score=_cast_to_float(vat_source_ht.splice_ai_donor_gain_score),
+        splice_ai_donor_loss_score=_cast_to_float(vat_source_ht.splice_ai_donor_loss_score),
+        splice_ai_acceptor_gain_distance=_cast_to_int(vat_source_ht.splice_ai_acceptor_gain_distance),
+        splice_ai_acceptor_loss_distance=_cast_to_int(vat_source_ht.splice_ai_acceptor_loss_distance),
+        splice_ai_donor_gain_distance=_cast_to_int(vat_source_ht.splice_ai_donor_gain_distance),
+        splice_ai_donor_loss_distance=_cast_to_int(vat_source_ht.splice_ai_donor_loss_distance)
     )
-    return vat_ht.key_by('locus', 'alleles')
+    transcript_ht = vat_source_ht.select(
+        "locus",
+        "alleles",
+        rsid=_cast_to_str(vat_source_ht.dbsnp_rsid),
+        gene_id=_cast_to_str(vat_source_ht.gene_id),
+        gene_symbol=_cast_to_str(vat_source_ht.gene_symbol),
+        transcript=_cast_to_str(vat_source_ht.transcript),
+        is_canonical_transcript=_cast_to_str(vat_source_ht.is_canonical_transcript),
+        consequence=_cast_to_str(vat_source_ht.consequence),
+        aa_change=_cast_to_str(vat_source_ht.aa_change),
+        LoF=_cast_to_str(vat_source_ht.LoF),
+        LoF_filter=sanitize_info(vat_source_ht.LoF_filter),
+        LoF_flags=sanitize_info(vat_source_ht.LoF_flags),
+        LoF_info=sanitize_info(vat_source_ht.LoF_info),
+        gvs_max_af=_cast_to_float(vat_source_ht.gvs_max_af),
+        gvs_max_subpop=_cast_to_str(vat_source_ht.gvs_max_subpop),
+    ).key_by("locus", "alleles")
+    return variant_ht.key_by('locus', 'alleles'), transcript_ht
 
 
 # init
@@ -220,7 +263,7 @@ def main(args):
     samples_ht = hl.import_table(args.SampleList, key='research_id')
 
     annotate_with_vat = not args.SkipVATAnnotations
-    vat_ht = _prepare_vat_ht(args.VATHailTable) if annotate_with_vat else None
+    vat_ht, transcript_vat_ht = _prepare_vat_tables(args.VATHailTable) if annotate_with_vat else (None, None)
 
     if args.BedFile:
         bed = hl.import_table(args.BedFile, delimiter='\t', no_header=True,
@@ -283,6 +326,25 @@ def main(args):
     if annotate_with_vat:
         # Join filtered MT with VAT table for annotations.
         mt_filtered = mt_filtered.annotate_rows(_vat=vat_ht[mt_filtered.row_key])
+
+        filtered_variant_keys = mt_filtered.rows().select()
+        transcript_annotations_ht = transcript_vat_ht.semi_join(filtered_variant_keys)
+        transcript_annotations_ht = transcript_annotations_ht.annotate(
+            chrom=transcript_annotations_ht.locus.contig,
+            pos=transcript_annotations_ht.locus.position,
+            ref=transcript_annotations_ht.alleles[0],
+            alt=transcript_annotations_ht.alleles[1],
+        )
+        transcript_annotations_ht = transcript_annotations_ht.key_by().select(
+            "chrom", "pos", "ref", "alt", *TRANSCRIPT_ANNOTATION_FIELDS
+        )
+        transcript_annotations_tsv = _join_cloud_path(
+            args.OutputBucket,
+            f"{args.OutputPrefix}.transcript_annotations.tsv.bgz",
+        )
+        transcript_annotations_ht.export(transcript_annotations_tsv)
+        with open("transcript_annotations_outpath.txt", "w") as output_path_file:
+            output_path_file.write(transcript_annotations_tsv)
 
     # Create flattened row table for annotation export
     annotations_ht = mt_filtered.rows()
