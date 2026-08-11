@@ -20,7 +20,6 @@ docker run --rm \
         cd /data/task
         /index_annotations.sh /data/tiny.annotations.tsv.bgz /data/published/tiny.annotations.tsv.bgz.tbi
         test "$(cat index_outpath.txt)" = "/data/published/tiny.annotations.tsv.bgz.tbi"
-        ln -s /data/tiny.annotations.tsv.bgz tiny.annotations.tsv.bgz
         rm -f tiny.annotations.tsv.bgz.tbi
         ln -s /data/published/tiny.annotations.tsv.bgz.tbi tiny.annotations.tsv.bgz.tbi
         tabix tiny.annotations.tsv.bgz chr1:200-200 |
