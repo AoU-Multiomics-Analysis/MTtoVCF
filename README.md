@@ -76,6 +76,21 @@ Override these values upward when a larger runtime configuration is available.
 
 **Output:** A bgzipped VCF (`<OutputPrefix>.vcf.bgz`) written to `<OutputBucket>`.
 
+The workflow also writes the following annotation outputs:
+
+- `<OutputPrefix>.annotations.tsv.bgz`: existing one-row-per-variant annotations.
+- `<OutputPrefix>.transcript_annotations.tsv.bgz`: one row per retained
+  variant-transcript combination, emitted when `AnnotateWithVAT=true` and
+  exposed as the optional `TranscriptAnnotations` WDL output.
+
+The transcript annotations TSV contains `chrom`, `pos`, `ref`, `alt`, `rsid`,
+`gene_id`, `gene_symbol`, `transcript`, `is_canonical_transcript`,
+`consequence`, `aa_change`, `LoF`, `LoF_filter`, `LoF_flags`, `LoF_info`,
+`gvs_max_af`, and `gvs_max_subpop`. Intergenic rows may have missing `gene_id`
+and/or `transcript`. Transcript annotations are filtered to retained variants
+without expanding the MatrixTable. Downstream analyses should choose the most
+severe consequence for the matched gene when collapsing transcript-level rows.
+
 When running through `main.wdl`, the exported VCF is always indexed. If `MakeDosage` is enabled, the workflow also emits `<FullPrefix>.dose.tsv.gz` and its `.tbi` index. If `MakePlink` is enabled, it emits `<FullPrefix>.pgen`, `<FullPrefix>.pvar`, and `<FullPrefix>.psam`.
 
 For pipeline testing without VAT, set `AnnotateWithVAT = false` and omit `VATHailTable`. The annotations TSV and VCF still include filtered cohort statistics and variant QC fields, but VAT-derived fields are omitted.
