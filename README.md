@@ -28,6 +28,10 @@ This is the main, all-in-one workflow. It filters the matrix table, annotates va
 | `CloudTmpdir` | Temporary cloud directory for Spark/Hail intermediate data |
 | `BedFile` | *(optional)* BED file of genomic regions to restrict variants to |
 | `Branch` | Docker image branch tag (default: `main`) |
+| `UtilsImageTag` | Utility image tag used by VCF and annotation index tasks (default: `main`; `main.wdl` only) |
+| `IndexDiskMultiplier` | Input-size multiplier for each index task's disk calculation (default: 2.0; `main.wdl` only) |
+| `IndexDiskOverheadGiB` | GiB added after multiplying each index input size (default: 10; `main.wdl` only) |
+| `IndexMinDiskGiB` | Minimum disk request in GiB for each index task (default: 20; `main.wdl` only) |
 | `TaskCpu` | CPU count for the Hail filter task (default: 64) |
 | `TaskMemory` | Memory for the Hail filter task (default: `256G`) |
 | `TaskDisk` | Local disk request for the Hail filter task (default: `local-disk 1000 SSD`) |
@@ -74,9 +78,9 @@ Override these values upward when a larger runtime configuration is available.
 | `splice_ai_acceptor_gain_distance` / `_loss_distance` | SpliceAI acceptor gain/loss distances |
 | `splice_ai_donor_gain_distance` / `_loss_distance` | SpliceAI donor gain/loss distances |
 
-**Output:** A bgzipped VCF (`<OutputPrefix>.vcf.bgz`) written to `<OutputBucket>`.
+**Output:** `main.wdl` emits `PathVCF`, `PathAnnotations`, `VCFIndex`, and `AnnotationIndex`. Both `.tbi` files are uploaded beside their sources in `OutputBucket`. Each indexing task requests `max(IndexMinDiskGiB, ceil(input GiB × IndexDiskMultiplier) + IndexDiskOverheadGiB)`.
 
-When running through `main.wdl`, the exported VCF is always indexed. If `MakeDosage` is enabled, the workflow also emits `<FullPrefix>.dose.tsv.gz` and its `.tbi` index. If `MakePlink` is enabled, it emits `<FullPrefix>.pgen`, `<FullPrefix>.pvar`, and `<FullPrefix>.psam`.
+If `MakeDosage` is enabled, the workflow also emits `<FullPrefix>.dose.tsv.gz` and its `.tbi` index. If `MakePlink` is enabled, it emits `<FullPrefix>.pgen`, `<FullPrefix>.pvar`, and `<FullPrefix>.psam`.
 
 For pipeline testing without VAT, set `AnnotateWithVAT = false` and omit `VATHailTable`. The annotations TSV and VCF still include filtered cohort statistics and variant QC fields, but VAT-derived fields are omitted.
 
