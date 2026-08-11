@@ -17,4 +17,4 @@ RUN micromamba install -y -n base -c conda-forge -c bioconda \
     bioconda::bcftools \
     bioconda::tabix 
 
-COPY scripts/*  . 
+COPY scripts/* /
