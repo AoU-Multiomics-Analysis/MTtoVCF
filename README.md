@@ -76,9 +76,47 @@ Override these values upward when a larger runtime configuration is available.
 
 **Output:** A bgzipped VCF (`<OutputPrefix>.vcf.bgz`) written to `<OutputBucket>`.
 
+The workflow also writes the following annotation outputs:
+
+- `<OutputPrefix>.annotations.tsv.bgz`: existing one-row-per-variant annotations.
+- `<OutputPrefix>.transcript_annotations.tsv.bgz`: one row per retained
+  variant-transcript combination, emitted when `AnnotateWithVAT=true` and
+  exposed as the optional `TranscriptAnnotations` WDL output.
+
+The transcript annotations TSV contains `chrom`, `pos`, `ref`, `alt`, `rsid`,
+`gene_id`, `gene_symbol`, `transcript`, `is_canonical_transcript`,
+`consequence`, `aa_change`, `LoF`, `LoF_filter`, `LoF_flags`, `LoF_info`,
+`gvs_max_af`, and `gvs_max_subpop`. Intergenic rows may have missing `gene_id`
+and/or `transcript`. Transcript annotations are filtered to retained variants
+without expanding the MatrixTable. Downstream analyses should choose the most
+severe consequence for the matched gene when collapsing transcript-level rows.
+
+The source VAT Hail Table must include `vid`, `dbsnp_rsid`, `gene_id`,
+`gene_symbol`, `transcript`, `is_canonical_transcript`, `consequence`,
+`aa_change`, `LoF`, `LoF_filter`, `LoF_flags`, `LoF_info`, `gvs_max_af`, and
+`gvs_max_subpop` in addition to the fields already used by the variant-level
+annotations. The table may be keyed by `(vid, transcript)`. When
+`AnnotateWithVAT=true`, these transcript fields are validated before any Hail
+projection; a missing-field error lists every absent field. Older precomputed
+VAT Hail Tables that lack any of these columns must be regenerated from a VAT
+export containing them. No VAT schema validation occurs when annotation is
+disabled.
+
 When running through `main.wdl`, the exported VCF is always indexed. If `MakeDosage` is enabled, the workflow also emits `<FullPrefix>.dose.tsv.gz` and its `.tbi` index. If `MakePlink` is enabled, it emits `<FullPrefix>.pgen`, `<FullPrefix>.pvar`, and `<FullPrefix>.psam`.
 
 For pipeline testing without VAT, set `AnnotateWithVAT = false` and omit `VATHailTable`. The annotations TSV and VCF still include filtered cohort statistics and variant QC fields, but VAT-derived fields are omitted.
+
+Run the real transcript-export regression in the production-pinned Hail image:
+
+```bash
+docker run --rm --platform linux/amd64 \
+  -v "$PWD:/workspace" -w /workspace \
+  hailgenetics/hail:0.2.134-py3.11 \
+  python3 -m unittest tests.test_filter_and_write_mt_hail_integration -v
+```
+
+With miniwdl and Docker available, smoke-test the disabled-VAT optional output
+with `python3 -m unittest tests.test_filtermt_optional_output_smoke -v`.
 
 ---
 
