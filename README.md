@@ -36,8 +36,12 @@ This is the main, all-in-one workflow. It filters the matrix table, annotates va
 | `SparkShufflePartitions` | Spark SQL shuffle partitions (default: 100) |
 | `MakeDosage` | If `true`, convert the exported VCF to a genotype dosage TSV (default: `false`; `main.wdl` only) |
 | `MakePlink` | If `true`, convert the exported VCF to PLINK 2 pgen/pvar/psam files (default: `false`; `main.wdl` only) |
+| `MakeLoFCarriers` | If `true`, emit long-format sample-gene LoF carrier tables from the exported VCF and transcript annotations (default: `false`; `main.wdl` only; requires `AnnotateWithVAT=true`) |
 | `DosageThreads` | Threads for the optional bcftools dosage task (default: 4; `main.wdl` only) |
 | `PlinkNewIdMaxAlleleLen` | Value passed to PLINK 2 `--new-id-max-allele-len` (default: 200; `main.wdl` only) |
+| `LoFCarrierThreads` | Threads for the optional indexed LoF variant extraction task (default: 4; `main.wdl` only) |
+| `LoFCarrierTaskMemory` | Memory for the optional LoF carrier task (default: `32G`; `main.wdl` only) |
+| `LoFCarrierTaskDisk` | Local disk request for the optional LoF carrier task (default: `local-disk 500 SSD`; `main.wdl` only) |
 
 When running through `main.wdl`, these filter-task runtime inputs are exposed with a `Filter` prefix: `FilterTaskCpu`, `FilterTaskMemory`, `FilterTaskDisk`, `FilterSparkDriverMemory`, `FilterSparkParallelism`, and `FilterSparkShufflePartitions`.
 
@@ -102,7 +106,17 @@ VAT Hail Tables that lack any of these columns must be regenerated from a VAT
 export containing them. No VAT schema validation occurs when annotation is
 disabled.
 
-When running through `main.wdl`, the exported VCF is always indexed. If `MakeDosage` is enabled, the workflow also emits `<FullPrefix>.dose.tsv.gz` and its `.tbi` index. If `MakePlink` is enabled, it emits `<FullPrefix>.pgen`, `<FullPrefix>.pvar`, and `<FullPrefix>.psam`.
+When running through `main.wdl`, the exported VCF is always indexed. If `MakeDosage` is enabled, the workflow also emits `<FullPrefix>.dose.tsv.gz` and its `.tbi` index. If `MakePlink` is enabled, it emits `<FullPrefix>.pgen`, `<FullPrefix>.pvar`, and `<FullPrefix>.psam`. If `MakeLoFCarriers` is enabled with VAT annotations on, it emits `<FullPrefix>.lof_carriers.HC.tsv.gz` and `<FullPrefix>.lof_carriers.HC_or_LC.tsv.gz`.
+
+The LoF carrier outputs are sparse long-format sample-gene tables with one row
+per sample and gene where the sample carries at least one qualifying
+non-reference LoF variant. HC-only uses transcript rows with `LoF == "HC"`;
+HC-or-LC uses `LoF` in `{"HC", "LC"}`. Genotypes with any non-reference allele
+count as carriers. The task first creates a LoF sites file from the transcript
+annotations, then uses `bcftools view -R` against the indexed VCF so only LoF
+variant genotypes are parsed. Output columns are `sample_id`, `gene_id`,
+`gene_symbol`, `has_lof_variant`, `n_lof_variants`, `variant_ids`, and
+`lof_classes`.
 
 For pipeline testing without VAT, set `AnnotateWithVAT = false` and omit `VATHailTable`. The annotations TSV and VCF still include filtered cohort statistics and variant QC fields, but VAT-derived fields are omitted.
 
@@ -120,7 +134,31 @@ with `python3 -m unittest tests.test_filtermt_optional_output_smoke -v`.
 
 ---
 
-### 2. TSVtoHailTable.wdl
+### 2. LoFCarrierTable.wdl
+
+This utility workflow creates sparse long-format LoF carrier tables from an
+exported VCF and the corresponding transcript annotations TSV.
+
+**Inputs:**
+
+| Parameter | Description |
+|---|---|
+| `vcf_file` | Exported bgzipped VCF containing sample genotype fields |
+| `vcf_index` | Tabix index for `vcf_file` |
+| `transcript_annotations_tsv` | Transcript annotations TSV/BGZ emitted by the filter workflow |
+| `output_prefix` | Filename prefix for the carrier outputs |
+| `threads` | Threads for `bcftools view -R` (default: 4) |
+| `task_memory` | Memory for the extraction task (default: `32G`) |
+| `task_disk` | Local disk request for the extraction task (default: `local-disk 500 SSD`) |
+
+**Outputs:**
+
+- `<output_prefix>.lof_carriers.HC.tsv.gz`
+- `<output_prefix>.lof_carriers.HC_or_LC.tsv.gz`
+
+---
+
+### 3. TSVtoHailTable.wdl
 
 This utility workflow converts an AoU Variant Annotation Table (VAT) TSV (or TSV.gz / BGZ) into a Hail table stored in cloud storage. The resulting Hail table is used by `FilterMT.wdl` to efficiently annotate variants at scale, avoiding the overhead of re-importing the flat file on every run.
 
@@ -139,7 +177,7 @@ This utility workflow converts an AoU Variant Annotation Table (VAT) TSV (or TSV
 
 ---
 
-### 3. MTtoVCF.wdl *(legacy — export only)*
+### 4. MTtoVCF.wdl *(legacy — export only)*
 
 > **This workflow is legacy.** The export step has been rolled into `FilterMT.wdl`. Use `FilterMT.wdl` for all new work.
 
