@@ -46,6 +46,7 @@ workflow FilterMT {
 
     output {
         File PathVCF = TaskFilterMT.PathVCF
+        File? TranscriptAnnotations = TaskFilterMT.TranscriptAnnotations
     }
 }
 
@@ -102,5 +103,6 @@ task TaskFilterMT {
     
     output {
         File PathVCF = read_string('outpath.txt')
+        File? TranscriptAnnotations = if AnnotateWithVAT then read_string('transcript_annotations_outpath.txt') else 'transcript_annotations_outpath.txt'
     }
 }

@@ -110,6 +110,7 @@ workflow FilterMTAndExportToVCF{
 
     output {
         File PathVCF = filter.PathVCF
+        File? TranscriptAnnotations = filter.TranscriptAnnotations
         File Index = IndexVCF.Index
         File? GenotypeDosage = postprocess.GenotypeDosage
         File? GenotypeDosageIndex = postprocess.GenotypeDosageIndex

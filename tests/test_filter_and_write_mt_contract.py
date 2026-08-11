@@ -38,6 +38,26 @@ class TranscriptVatContractTests(unittest.TestCase):
         self.assertIn("vid", MODULE.REQUIRED_TRANSCRIPT_VAT_FIELDS)
         self.assertIn("dbsnp_rsid", MODULE.REQUIRED_TRANSCRIPT_VAT_FIELDS)
 
+    def test_filter_workflow_exposes_optional_transcript_output(self):
+        source = (ROOT / "workflow" / "FilterMT.wdl").read_text()
+        self.assertIn(
+            "File? TranscriptAnnotations = TaskFilterMT.TranscriptAnnotations",
+            source,
+        )
+        self.assertIn(
+            "File? TranscriptAnnotations = if AnnotateWithVAT then "
+            "read_string('transcript_annotations_outpath.txt') else "
+            "'transcript_annotations_outpath.txt'",
+            source,
+        )
+
+    def test_main_workflow_propagates_transcript_output(self):
+        source = (ROOT / "main.wdl").read_text()
+        self.assertIn(
+            "File? TranscriptAnnotations = filter.TranscriptAnnotations",
+            source,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
