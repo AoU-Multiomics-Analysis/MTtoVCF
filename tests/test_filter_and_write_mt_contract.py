@@ -76,6 +76,13 @@ class TranscriptVatContractTests(unittest.TestCase):
             source,
         )
 
+    def test_lof_carrier_workflow_uses_dedicated_image(self):
+        source = (ROOT / "workflow" / "LoFCarrierTable.wdl").read_text()
+        self.assertIn(
+            'docker: "ghcr.io/aou-multiomics-analysis/mttovcf/lof-carriers:main"',
+            source,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
