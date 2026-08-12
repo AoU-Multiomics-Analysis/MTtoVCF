@@ -13,5 +13,8 @@ workflows:
     primaryDescriptorPath: /workflow/LoFCarrierTable.wdl
     name: LoFCarrierTable
   - subclass: WDL
+    primaryDescriptorPath: /workflow/HailLoFCarrierTable.wdl
+    name: HailLoFCarrierTable
+  - subclass: WDL
     primaryDescriptorPath: /workflow/TSVtoHailTable.wdl
     name: TSVtoHailTable
