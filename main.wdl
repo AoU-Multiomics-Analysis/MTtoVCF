@@ -2,6 +2,7 @@ version 1.0
 
 import "workflow/FilterMT.wdl" as FilterMT
 import "workflow/VCFPostProcess.wdl" as VCFPostProcess
+import "workflow/HailLoFCarrierTable.wdl" as HailLoFCarrierTable
 
 task IndexVCF {
     input {
@@ -67,9 +68,14 @@ workflow FilterMTAndExportToVCF{
         Boolean MakeLoFCarriers = false
         Int DosageThreads = 4
         Int PlinkNewIdMaxAlleleLen = 200
-        Int LoFCarrierThreads = 4
-        String LoFCarrierTaskMemory = "32G"
-        String LoFCarrierTaskDisk = "local-disk 500 SSD"
+
+        # Optional Hail-native LoF carrier extraction
+        Int LoFCarrierTaskCpu = 64
+        String LoFCarrierTaskMemory = "256G"
+        String LoFCarrierTaskDisk = "local-disk 1000 SSD"
+        String LoFCarrierSparkDriverMemory = "64g"
+        Int LoFCarrierSparkParallelism = 100
+        Int LoFCarrierSparkShufflePartitions = 100
     }
 
     String FullPrefix = "~{OutputPrefix}.~{SampleSetName}.AC~{MinAlleleCountThreshold}.AN~{AlleleNumberPercentage}.biallelic.~{CallSetName}"
@@ -110,12 +116,32 @@ workflow FilterMTAndExportToVCF{
             output_prefix = FullPrefix,
             make_dosage = MakeDosage,
             make_plink = MakePlink,
-            make_lof_carriers = MakeLoFCarriers && AnnotateWithVAT,
+            make_lof_carriers = false,
             dosage_threads = DosageThreads,
-            plink_new_id_max_allele_len = PlinkNewIdMaxAlleleLen,
-            lof_carrier_threads = LoFCarrierThreads,
-            lof_carrier_task_memory = LoFCarrierTaskMemory,
-            lof_carrier_task_disk = LoFCarrierTaskDisk
+            plink_new_id_max_allele_len = PlinkNewIdMaxAlleleLen
+    }
+
+   if (MakeLoFCarriers) {
+        call HailLoFCarrierTable.ExtractHailLoFCarriers as HailLoFCarriers {
+            input:
+                UriMatrixTable = UriMatrixTable,
+                SampleList = SampleList,
+                BedFile = BedFile,
+                VATHailTable = select_first([VATHailTable]),
+                MinAlleleCountThreshold = MinAlleleCountThreshold,
+                MaxAlleleCountThreshold = MaxAlleleCountThreshold,
+                AlleleNumberPercentage = AlleleNumberPercentage,
+                OutputBucket = OutputBucket,
+                OutputPrefix = FullPrefix,
+                CloudTmpdir = CloudTmpdir,
+                Branch = Branch,
+                TaskCpu = LoFCarrierTaskCpu,
+                TaskMemory = LoFCarrierTaskMemory,
+                TaskDisk = LoFCarrierTaskDisk,
+                SparkDriverMemory = LoFCarrierSparkDriverMemory,
+                SparkParallelism = LoFCarrierSparkParallelism,
+                SparkShufflePartitions = LoFCarrierSparkShufflePartitions
+        }
     }
 
     output {
@@ -127,8 +153,8 @@ workflow FilterMTAndExportToVCF{
         File? PlinkPgen = postprocess.PlinkPgen
         File? PlinkPvar = postprocess.PlinkPvar
         File? PlinkPsam = postprocess.PlinkPsam
-        File? LoFCarriersHC = postprocess.LoFCarriersHC
-        File? LoFCarriersHCOrLC = postprocess.LoFCarriersHCOrLC
+        File? LoFCarriersHC = HailLoFCarriers.lof_carriers_hc
+        File? LoFCarriersHCOrLC = HailLoFCarriers.lof_carriers_hc_or_lc
     }
 }
 

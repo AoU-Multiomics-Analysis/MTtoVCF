@@ -11,6 +11,12 @@ SPEC = importlib.util.spec_from_file_location(
 )
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+HAIL_LOF_SPEC = importlib.util.spec_from_file_location(
+    "extract_lof_carriers_hail",
+    ROOT / "scripts" / "extract_lof_carriers_hail.py",
+)
+HAIL_LOF_MODULE = importlib.util.module_from_spec(HAIL_LOF_SPEC)
+HAIL_LOF_SPEC.loader.exec_module(HAIL_LOF_MODULE)
 
 
 class TranscriptVatContractTests(unittest.TestCase):
@@ -61,18 +67,19 @@ class TranscriptVatContractTests(unittest.TestCase):
     def test_main_workflow_exposes_lof_carrier_outputs(self):
         source = (ROOT / "main.wdl").read_text()
         self.assertIn("Boolean MakeLoFCarriers = false", source)
-        self.assertIn("Int LoFCarrierThreads = 4", source)
+        self.assertIn("Int LoFCarrierTaskCpu = 64", source)
+        self.assertIn("String LoFCarrierTaskMemory = \"256G\"", source)
         self.assertIn("vcf_index = IndexVCF.Index", source)
+        self.assertIn("import \"workflow/HailLoFCarrierTable.wdl\"", source)
+        self.assertIn("if (MakeLoFCarriers)", source)
+        self.assertIn("call HailLoFCarrierTable.ExtractHailLoFCarriers", source)
+        self.assertIn("make_lof_carriers = false", source)
         self.assertIn(
-            "make_lof_carriers = MakeLoFCarriers && AnnotateWithVAT",
+            "File? LoFCarriersHC = HailLoFCarriers.lof_carriers_hc",
             source,
         )
         self.assertIn(
-            "File? LoFCarriersHC = postprocess.LoFCarriersHC",
-            source,
-        )
-        self.assertIn(
-            "File? LoFCarriersHCOrLC = postprocess.LoFCarriersHCOrLC",
+            "File? LoFCarriersHCOrLC = HailLoFCarriers.lof_carriers_hc_or_lc",
             source,
         )
 
@@ -82,6 +89,33 @@ class TranscriptVatContractTests(unittest.TestCase):
             'docker: "ghcr.io/aou-multiomics-analysis/mttovcf/lof-carriers:main"',
             source,
         )
+
+    def test_hail_lof_workflow_contract(self):
+        self.assertEqual(
+            HAIL_LOF_MODULE.REQUIRED_LOF_VAT_FIELDS,
+            ("vid", "gene_id", "gene_symbol", "LoF"),
+        )
+        self.assertEqual(
+            HAIL_LOF_MODULE._missing_lof_vat_fields({"vid", "LoF"}),
+            ["gene_id", "gene_symbol"],
+        )
+
+        workflow_source = (
+            ROOT / "workflow" / "HailLoFCarrierTable.wdl"
+        ).read_text()
+        self.assertIn("--VATHailTable ~{VATHailTable}", workflow_source)
+        self.assertIn("/extract_lof_carriers_hail.py", workflow_source)
+        self.assertIn(
+            'docker: "ghcr.io/aou-multiomics-analysis/mttovcf:" + Branch',
+            workflow_source,
+        )
+
+        dockstore_source = (ROOT / ".dockstore.yml").read_text()
+        self.assertIn(
+            "primaryDescriptorPath: /workflow/HailLoFCarrierTable.wdl",
+            dockstore_source,
+        )
+        self.assertIn("name: HailLoFCarrierTable", dockstore_source)
 
 
 if __name__ == "__main__":
