@@ -68,7 +68,7 @@ task ExtractLoFCarriers {
     >>>
 
     runtime {
-        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils"
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils:main"
         memory: task_memory
         cpu: threads
         disks: task_disk
