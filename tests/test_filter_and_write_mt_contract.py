@@ -110,6 +110,21 @@ class TranscriptVatContractTests(unittest.TestCase):
             workflow_source,
         )
 
+    def test_hail_lof_membership_uses_hail_sets(self):
+        source = (ROOT / "scripts" / "extract_lof_carriers_hail.py").read_text()
+        self.assertIn(
+            "hl.literal(set(LOF_CLASSES)).contains(vat_ht.LoF)",
+            source,
+        )
+        self.assertIn(
+            "lof_class_literal = hl.literal(set(lof_classes))",
+            source,
+        )
+        self.assertIn(
+            "lof_class_literal.contains(entries_ht.lof_genes.lof_class)",
+            source,
+        )
+
         dockstore_source = (ROOT / ".dockstore.yml").read_text()
         self.assertIn(
             "primaryDescriptorPath: /workflow/HailLoFCarrierTable.wdl",
