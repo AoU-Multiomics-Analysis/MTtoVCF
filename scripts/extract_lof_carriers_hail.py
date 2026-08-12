@@ -60,7 +60,7 @@ def _prepare_lof_variant_gene_table(vat_hail_table):
         _text_is_defined(vat_ht.vid)
         & _text_is_defined(vat_ht.gene_id)
         & _text_is_defined(vat_ht.LoF)
-        & hl.literal(LOF_CLASSES).contains(vat_ht.LoF)
+        & hl.literal(set(LOF_CLASSES)).contains(vat_ht.LoF)
     )
 
     vat_ht = vat_ht.annotate(_parts=vat_ht.vid.split("-", 4))
@@ -152,7 +152,7 @@ def _variant_id(ht):
 
 
 def _build_carrier_table(entries_ht, lof_classes):
-    lof_class_literal = hl.literal(lof_classes)
+    lof_class_literal = hl.literal(set(lof_classes))
     carrier_ht = entries_ht.filter(
         lof_class_literal.contains(entries_ht.lof_genes.lof_class)
     )
