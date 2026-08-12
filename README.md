@@ -116,7 +116,9 @@ count as carriers. The task first creates a LoF sites file from the transcript
 annotations, then uses `bcftools view -R` against the indexed VCF so only LoF
 variant genotypes are parsed. Output columns are `sample_id`, `gene_id`,
 `gene_symbol`, `has_lof_variant`, `n_lof_variants`, `variant_ids`, and
-`lof_classes`.
+`lof_classes`. The task uses a dedicated lightweight Docker image,
+`ghcr.io/aou-multiomics-analysis/mttovcf/lof-carriers:main`, with Python and
+bcftools installed.
 
 For pipeline testing without VAT, set `AnnotateWithVAT = false` and omit `VATHailTable`. The annotations TSV and VCF still include filtered cohort statistics and variant QC fields, but VAT-derived fields are omitted.
 
