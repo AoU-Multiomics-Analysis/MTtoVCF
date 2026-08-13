@@ -20,6 +20,10 @@ workflow HailLoFCarrierTable {
         String SparkDriverMemory = "64g"
         Int SparkParallelism = 100
         Int SparkShufflePartitions = 100
+
+        Int IndexCpu = 4
+        String IndexMemory = "32G"
+        String IndexDisk = "local-disk 100 SSD"
     }
 
     call ExtractHailLoFCarriers {
@@ -43,7 +47,18 @@ workflow HailLoFCarrierTable {
             SparkShufflePartitions = SparkShufflePartitions
     }
 
+    call IndexLoFVCF {
+        input:
+            VCF = ExtractHailLoFCarriers.lof_variants_vcf,
+            Prefix = OutputPrefix + ".lof_variants",
+            TaskCpu = IndexCpu,
+            TaskMemory = IndexMemory,
+            TaskDisk = IndexDisk
+    }
+
     output {
+        File LoFVariantsVCF = ExtractHailLoFCarriers.lof_variants_vcf
+        File LoFVariantsVCFIndex = IndexLoFVCF.index
         File LoFCarriersHC = ExtractHailLoFCarriers.lof_carriers_hc
         File LoFCarriersHCOrLC = ExtractHailLoFCarriers.lof_carriers_hc_or_lc
     }
@@ -97,7 +112,37 @@ task ExtractHailLoFCarriers {
     }
 
     output {
+        File lof_variants_vcf = read_string("lof_variants_vcf_outpath.txt")
         File lof_carriers_hc = read_string("lof_carriers_hc_outpath.txt")
         File lof_carriers_hc_or_lc = read_string("lof_carriers_hc_or_lc_outpath.txt")
+    }
+}
+
+task IndexLoFVCF {
+    input {
+        File VCF
+        String Prefix
+        Int TaskCpu
+        String TaskMemory
+        String TaskDisk
+    }
+
+    command <<<
+        set -euo pipefail
+
+        bcftools index --tbi --force \
+            --output "~{Prefix}.vcf.bgz.tbi" \
+            "~{VCF}"
+    >>>
+
+    runtime {
+        docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils:main"
+        memory: TaskMemory
+        cpu: TaskCpu
+        disks: TaskDisk
+    }
+
+    output {
+        File index = "~{Prefix}.vcf.bgz.tbi"
     }
 }

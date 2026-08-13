@@ -151,26 +151,79 @@ def _variant_id(ht):
     )
 
 
-def _build_carrier_table(entries_ht, lof_classes):
-    lof_class_literal = hl.literal(set(lof_classes))
-    carrier_ht = entries_ht.filter(
-        lof_class_literal.contains(entries_ht.lof_genes.lof_class)
+def _sorted_distinct(expr):
+    return hl.sorted(hl.array(hl.set(expr)))
+
+
+def _annotate_lof_vcf_fields(mt):
+    return mt.annotate_rows(
+        LOF_GENE_ID=_sorted_distinct(
+            mt.lof_genes.map(lambda lof_gene: lof_gene.gene_id)
+        ),
+        LOF_GENE_SYMBOL=_sorted_distinct(
+            mt.lof_genes.map(lambda lof_gene: lof_gene.gene_symbol)
+        ),
+        LOF_CLASS=_sorted_distinct(
+            mt.lof_genes.map(lambda lof_gene: lof_gene.lof_class)
+        ),
     )
-    carrier_ht = carrier_ht.group_by(
-        sample_id=carrier_ht.s,
-        gene_id=carrier_ht.lof_genes.gene_id,
+
+
+def _aggregate_carrier_table(entries_ht):
+    carrier_ht = entries_ht.group_by(
+        sample_id=entries_ht.s,
+        gene_id=entries_ht.lof_genes.gene_id,
     ).aggregate(
-        gene_symbols=hl.agg.collect_as_set(carrier_ht.lof_genes.gene_symbol),
-        variant_ids=hl.agg.collect_as_set(carrier_ht.variant_id),
-        lof_classes=hl.agg.collect_as_set(carrier_ht.lof_genes.lof_class),
+        all_gene_symbols=hl.agg.collect_as_set(entries_ht.lof_genes.gene_symbol),
+        all_variant_ids=hl.agg.collect_as_set(entries_ht.variant_id),
+        all_lof_classes=hl.agg.collect_as_set(entries_ht.lof_genes.lof_class),
+        hc_gene_symbols=hl.agg.filter(
+            entries_ht.lof_genes.lof_class == "HC",
+            hl.agg.collect_as_set(entries_ht.lof_genes.gene_symbol),
+        ),
+        hc_variant_ids=hl.agg.filter(
+            entries_ht.lof_genes.lof_class == "HC",
+            hl.agg.collect_as_set(entries_ht.variant_id),
+        ),
+        hc_lof_classes=hl.agg.filter(
+            entries_ht.lof_genes.lof_class == "HC",
+            hl.agg.collect_as_set(entries_ht.lof_genes.lof_class),
+        ),
     )
-    carrier_ht = carrier_ht.annotate(
-        gene_symbol=hl.delimit(hl.sorted(hl.array(carrier_ht.gene_symbols)), ","),
-        has_lof_variant="true",
-        n_lof_variants=hl.len(carrier_ht.variant_ids),
-        variant_ids=hl.delimit(hl.sorted(hl.array(carrier_ht.variant_ids)), ","),
-        lof_classes=hl.delimit(hl.sorted(hl.array(carrier_ht.lof_classes)), ","),
-    )
+
+    return carrier_ht
+
+
+def _format_carrier_table(carrier_ht, hc_only):
+    if hc_only:
+        carrier_ht = carrier_ht.filter(hl.len(carrier_ht.hc_variant_ids) > 0)
+        carrier_ht = carrier_ht.annotate(
+            gene_symbol=hl.delimit(
+                _sorted_distinct(carrier_ht.hc_gene_symbols), ","
+            ),
+            has_lof_variant="true",
+            n_lof_variants=hl.len(carrier_ht.hc_variant_ids),
+            variant_ids=hl.delimit(
+                _sorted_distinct(carrier_ht.hc_variant_ids), ","
+            ),
+            lof_classes=hl.delimit(
+                _sorted_distinct(carrier_ht.hc_lof_classes), ","
+            ),
+        )
+    else:
+        carrier_ht = carrier_ht.annotate(
+            gene_symbol=hl.delimit(
+                _sorted_distinct(carrier_ht.all_gene_symbols), ","
+            ),
+            has_lof_variant="true",
+            n_lof_variants=hl.len(carrier_ht.all_variant_ids),
+            variant_ids=hl.delimit(
+                _sorted_distinct(carrier_ht.all_variant_ids), ","
+            ),
+            lof_classes=hl.delimit(
+                _sorted_distinct(carrier_ht.all_lof_classes), ","
+            ),
+        )
     carrier_ht = carrier_ht.key_by()
     return carrier_ht.select(
         "sample_id",
@@ -207,10 +260,22 @@ def main(args):
     mt = mt.annotate_rows(lof_genes=lof_ht[mt.row_key].lof_genes)
     mt = mt.filter_rows(hl.is_defined(mt.lof_genes))
     mt = mt.select_rows("lof_genes").select_cols().select_entries("GT")
-    mt = mt.explode_rows(mt.lof_genes)
-    mt = mt.annotate_rows(variant_id=_variant_id(mt))
 
-    entries_ht = mt.entries()
+    mt = _annotate_lof_vcf_fields(mt)
+    lof_intermediate_path = _join_cloud_path(
+        args.CloudTmpdir, f"{args.OutputPrefix}.lof_intermediate.mt"
+    )
+    mt.write(lof_intermediate_path, overwrite=True)
+    lof_mt = hl.read_matrix_table(lof_intermediate_path)
+
+    lof_vcf_output = _join_cloud_path(
+        args.OutputBucket, f"{args.OutputPrefix}.lof_variants.vcf.bgz"
+    )
+    hl.export_vcf(lof_mt, lof_vcf_output)
+
+    carrier_mt = lof_mt.explode_rows(lof_mt.lof_genes)
+    carrier_mt = carrier_mt.annotate_rows(variant_id=_variant_id(carrier_mt))
+    entries_ht = carrier_mt.entries()
     entries_ht = entries_ht.filter(
         hl.is_defined(entries_ht.GT) & entries_ht.GT.is_non_ref()
     )
@@ -222,9 +287,16 @@ def main(args):
         args.OutputBucket, f"{args.OutputPrefix}.lof_carriers.HC_or_LC.tsv.bgz"
     )
 
-    _build_carrier_table(entries_ht, ("HC",)).export(hc_output)
-    _build_carrier_table(entries_ht, LOF_CLASSES).export(hc_or_lc_output)
+    carrier_intermediate_path = _join_cloud_path(
+        args.CloudTmpdir, f"{args.OutputPrefix}.lof_carriers_intermediate.ht"
+    )
+    carrier_ht = _aggregate_carrier_table(entries_ht)
+    carrier_ht = carrier_ht.checkpoint(carrier_intermediate_path, overwrite=True)
+    _format_carrier_table(carrier_ht, hc_only=True).export(hc_output)
+    _format_carrier_table(carrier_ht, hc_only=False).export(hc_or_lc_output)
 
+    with open("lof_variants_vcf_outpath.txt", "w") as output_path_file:
+        output_path_file.write(lof_vcf_output)
     with open("lof_carriers_hc_outpath.txt", "w") as output_path_file:
         output_path_file.write(hc_output)
     with open("lof_carriers_hc_or_lc_outpath.txt", "w") as output_path_file:

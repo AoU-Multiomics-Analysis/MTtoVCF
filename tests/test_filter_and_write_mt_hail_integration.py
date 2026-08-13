@@ -65,6 +65,12 @@ class TranscriptVatHailIntegrationTests(unittest.TestCase):
         )
         cls.module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cls.module)
+        lof_spec = importlib.util.spec_from_file_location(
+            "extract_lof_carriers_hail_integration",
+            ROOT / "scripts" / "extract_lof_carriers_hail.py",
+        )
+        cls.lof_module = importlib.util.module_from_spec(lof_spec)
+        lof_spec.loader.exec_module(cls.lof_module)
 
     @classmethod
     def tearDownClass(cls):
@@ -213,6 +219,52 @@ class TranscriptVatHailIntegrationTests(unittest.TestCase):
             "intergenic_variant",
         )
         self.assertNotIn("50", {row["pos"] for row in rows})
+
+    def test_hail_lof_outputs_preserve_hc_only_semantics(self):
+        mt = hl.utils.range_matrix_table(2, 2)
+        mt = mt.annotate_cols(s=hl.str(mt.col_idx)).key_cols_by("s")
+        mt = mt.annotate_rows(
+            lof_genes=hl.set(
+                [
+                    hl.struct(
+                        gene_id="ENSG0001",
+                        gene_symbol="GENE1",
+                        lof_class=hl.if_else(
+                            mt.row_idx == 0, "HC", "LC"
+                        ),
+                    )
+                ]
+            ),
+            variant_id=hl.str(mt.row_idx),
+        )
+        mt = mt.annotate_entries(GT=hl.call(0, 1))
+
+        annotated_mt = self.lof_module._annotate_lof_vcf_fields(mt)
+        row = annotated_mt.rows().select(
+            "LOF_GENE_ID", "LOF_GENE_SYMBOL", "LOF_CLASS"
+        ).collect()[0]
+        self.assertEqual(row.LOF_GENE_ID, ["ENSG0001"])
+        self.assertEqual(row.LOF_GENE_SYMBOL, ["GENE1"])
+        self.assertEqual(row.LOF_CLASS, ["HC"])
+
+        entries_ht = mt.explode_rows("lof_genes").entries()
+        entries_ht = entries_ht.filter(
+            hl.is_defined(entries_ht.GT) & entries_ht.GT.is_non_ref()
+        )
+        carrier_ht = self.lof_module._aggregate_carrier_table(entries_ht)
+        hc_rows = self.lof_module._format_carrier_table(
+            carrier_ht, hc_only=True
+        ).collect()
+        all_rows = self.lof_module._format_carrier_table(
+            carrier_ht, hc_only=False
+        ).collect()
+
+        self.assertEqual(len(hc_rows), 2)
+        self.assertEqual(len(all_rows), 2)
+        self.assertEqual({row.n_lof_variants for row in hc_rows}, {1})
+        self.assertEqual({row.n_lof_variants for row in all_rows}, {2})
+        self.assertEqual({row.variant_ids for row in hc_rows}, {"0"})
+        self.assertEqual({row.variant_ids for row in all_rows}, {"0,1"})
 
 
 if __name__ == "__main__":
