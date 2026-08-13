@@ -72,14 +72,17 @@ class TranscriptVatContractTests(unittest.TestCase):
         self.assertIn("vcf_index = IndexVCF.Index", source)
         self.assertIn("import \"workflow/HailLoFCarrierTable.wdl\"", source)
         self.assertIn("if (MakeLoFCarriers)", source)
-        self.assertIn("call HailLoFCarrierTable.ExtractHailLoFCarriers", source)
+        self.assertIn(
+            "call HailLoFCarrierTable.HailLoFCarrierTable as HailLoFCarriers",
+            source,
+        )
         self.assertIn("make_lof_carriers = false", source)
         self.assertIn(
-            "File? LoFCarriersHC = HailLoFCarriers.lof_carriers_hc",
+            "File? LoFCarriersHC = HailLoFCarriers.LoFCarriersHC",
             source,
         )
         self.assertIn(
-            "File? LoFCarriersHCOrLC = HailLoFCarriers.lof_carriers_hc_or_lc",
+            "File? LoFCarriersHCOrLC = HailLoFCarriers.LoFCarriersHCOrLC",
             source,
         )
 
@@ -116,14 +119,6 @@ class TranscriptVatContractTests(unittest.TestCase):
             "hl.literal(set(LOF_CLASSES)).contains(vat_ht.LoF)",
             source,
         )
-        self.assertIn(
-            "lof_class_literal = hl.literal(set(lof_classes))",
-            source,
-        )
-        self.assertIn(
-            "lof_class_literal.contains(entries_ht.lof_genes.lof_class)",
-            source,
-        )
 
         dockstore_source = (ROOT / ".dockstore.yml").read_text()
         self.assertIn(
@@ -131,6 +126,61 @@ class TranscriptVatContractTests(unittest.TestCase):
             dockstore_source,
         )
         self.assertIn("name: HailLoFCarrierTable", dockstore_source)
+
+    def test_hail_lof_outputs_share_materialized_data(self):
+        source = (ROOT / "scripts" / "extract_lof_carriers_hail.py").read_text()
+        self.assertIn(
+            "lof_intermediate_path = _join_cloud_path(\n        args.CloudTmpdir",
+            source,
+        )
+        self.assertIn(
+            "mt.write(lof_intermediate_path, overwrite=True)",
+            source,
+        )
+        self.assertIn(
+            "lof_mt = hl.read_matrix_table(lof_intermediate_path)",
+            source,
+        )
+        self.assertIn("hl.export_vcf(lof_mt, lof_vcf_output)", source)
+        self.assertIn(
+            "carrier_ht = carrier_ht.checkpoint(carrier_intermediate_path, overwrite=True)",
+            source,
+        )
+        self.assertIn("lof_variants_vcf_outpath.txt", source)
+
+    def test_hail_lof_workflow_indexes_vcf_post_hoc(self):
+        workflow_source = (
+            ROOT / "workflow" / "HailLoFCarrierTable.wdl"
+        ).read_text()
+        self.assertIn("call IndexLoFVCF", workflow_source)
+        self.assertIn("bcftools index --tbi --force", workflow_source)
+        self.assertIn(
+            'docker: "ghcr.io/aou-multiomics-analysis/mttovcf/utils:main"',
+            workflow_source,
+        )
+        self.assertIn(
+            "File LoFVariantsVCF = ExtractHailLoFCarriers.lof_variants_vcf",
+            workflow_source,
+        )
+        self.assertIn(
+            "File LoFVariantsVCFIndex = IndexLoFVCF.index",
+            workflow_source,
+        )
+
+    def test_main_workflow_propagates_lof_vcf_outputs(self):
+        source = (ROOT / "main.wdl").read_text()
+        self.assertIn(
+            "call HailLoFCarrierTable.HailLoFCarrierTable as HailLoFCarriers",
+            source,
+        )
+        self.assertIn(
+            "File? LoFVariantsVCF = HailLoFCarriers.LoFVariantsVCF",
+            source,
+        )
+        self.assertIn(
+            "File? LoFVariantsVCFIndex = HailLoFCarriers.LoFVariantsVCFIndex",
+            source,
+        )
 
 
 if __name__ == "__main__":

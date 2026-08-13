@@ -122,7 +122,7 @@ workflow FilterMTAndExportToVCF{
     }
 
    if (MakeLoFCarriers) {
-        call HailLoFCarrierTable.ExtractHailLoFCarriers as HailLoFCarriers {
+        call HailLoFCarrierTable.HailLoFCarrierTable as HailLoFCarriers {
             input:
                 UriMatrixTable = UriMatrixTable,
                 SampleList = SampleList,
@@ -153,8 +153,10 @@ workflow FilterMTAndExportToVCF{
         File? PlinkPgen = postprocess.PlinkPgen
         File? PlinkPvar = postprocess.PlinkPvar
         File? PlinkPsam = postprocess.PlinkPsam
-        File? LoFCarriersHC = HailLoFCarriers.lof_carriers_hc
-        File? LoFCarriersHCOrLC = HailLoFCarriers.lof_carriers_hc_or_lc
+        File? LoFVariantsVCF = HailLoFCarriers.LoFVariantsVCF
+        File? LoFVariantsVCFIndex = HailLoFCarriers.LoFVariantsVCFIndex
+        File? LoFCarriersHC = HailLoFCarriers.LoFCarriersHC
+        File? LoFCarriersHCOrLC = HailLoFCarriers.LoFCarriersHCOrLC
     }
 }
 
