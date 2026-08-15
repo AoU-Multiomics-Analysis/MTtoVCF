@@ -136,11 +136,11 @@ class TranscriptVatContractTests(unittest.TestCase):
     def test_hail_lof_workflow_contract(self):
         self.assertEqual(
             HAIL_LOF_MODULE.REQUIRED_LOF_VAT_FIELDS,
-            ("vid", "gene_id", "gene_symbol", "LoF"),
+            ("vid", "gene_id", "gene_symbol", "LoF", "consequence"),
         )
         self.assertEqual(
             HAIL_LOF_MODULE._missing_lof_vat_fields({"vid", "LoF"}),
-            ["gene_id", "gene_symbol"],
+            ["consequence", "gene_id", "gene_symbol"],
         )
 
         workflow_source = (
@@ -161,6 +161,22 @@ class TranscriptVatContractTests(unittest.TestCase):
             "if not args.MatrixTableAlreadyFiltered:",
             hail_lof_source,
         )
+
+    def test_hail_lof_source_contract_for_generalized_outputs(self):
+        source = (ROOT / "scripts" / "extract_lof_carriers_hail.py").read_text()
+        self.assertIn("splice_acceptor", source)
+        self.assertIn("splice_donor", source)
+        self.assertIn("_prepare_variant_annotation_table", source)
+        self.assertIn("annotation_group", source)
+        self.assertIn("splice_acceptor_carriers.tsv.bgz", source)
+        self.assertIn("splice_donor_carriers.tsv.bgz", source)
+        self.assertIn("splice_acceptor_carriers_outpath.txt", source)
+        self.assertIn("splice_donor_carriers_outpath.txt", source)
+        self.assertIn("LOF_GENE_ID", source)
+        self.assertIn("LOF_GENE_SYMBOL", source)
+        self.assertIn("LOF_CLASS", source)
+        self.assertIn("lof_carriers.HC.tsv.bgz", source)
+        self.assertIn("lof_carriers.HC_or_LC.tsv.bgz", source)
 
     def test_hail_lof_membership_uses_hail_sets(self):
         source = (ROOT / "scripts" / "extract_lof_carriers_hail.py").read_text()
