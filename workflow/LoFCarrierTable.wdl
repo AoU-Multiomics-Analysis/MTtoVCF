@@ -25,6 +25,8 @@ workflow LoFCarrierTable {
     output {
         File LoFCarriersHC = ExtractLoFCarriers.lof_carriers_hc
         File LoFCarriersHCOrLC = ExtractLoFCarriers.lof_carriers_hc_or_lc
+        File SpliceAcceptorCarriers = ExtractLoFCarriers.splice_acceptor_carriers
+        File SpliceDonorCarriers = ExtractLoFCarriers.splice_donor_carriers
     }
 }
 
@@ -48,12 +50,12 @@ task ExtractLoFCarriers {
 
         python3 /extract_lof_carriers.py write-sites \
             --TranscriptAnnotations "~{transcript_annotations_tsv}" \
-            --Regions lof_regions.tsv \
-            --VariantMap lof_variant_gene_map.tsv
+            --Regions annotation_regions.tsv \
+            --VariantMap annotation_variant_gene_map.tsv
 
-        if [ -s lof_regions.tsv ]; then
+        if [ -s annotation_regions.tsv ]; then
             bcftools view --threads ~{threads} \
-                -R lof_regions.tsv \
+                -R annotation_regions.tsv \
                 "~{vcf_file}" \
                 -Ov \
                 -o lof_variants.vcf
@@ -63,7 +65,7 @@ task ExtractLoFCarriers {
 
         python3 /extract_lof_carriers.py collect-carriers \
             --VCF lof_variants.vcf \
-            --VariantMap lof_variant_gene_map.tsv \
+            --VariantMap annotation_variant_gene_map.tsv \
             --OutputPrefix "~{output_prefix}"
     >>>
 
@@ -77,5 +79,7 @@ task ExtractLoFCarriers {
     output {
         File lof_carriers_hc = "~{output_prefix}.lof_carriers.HC.tsv.gz"
         File lof_carriers_hc_or_lc = "~{output_prefix}.lof_carriers.HC_or_LC.tsv.gz"
+        File splice_acceptor_carriers = "~{output_prefix}.splice_acceptor_carriers.tsv.gz"
+        File splice_donor_carriers = "~{output_prefix}.splice_donor_carriers.tsv.gz"
     }
 }

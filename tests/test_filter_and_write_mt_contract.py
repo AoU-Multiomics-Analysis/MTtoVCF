@@ -133,6 +133,36 @@ class TranscriptVatContractTests(unittest.TestCase):
             source,
         )
 
+    def test_lof_carrier_workflow_exposes_generalized_outputs(self):
+        source = (ROOT / "workflow" / "LoFCarrierTable.wdl").read_text()
+        self.assertIn("--Regions annotation_regions.tsv", source)
+        self.assertIn("--VariantMap annotation_variant_gene_map.tsv", source)
+        self.assertIn("-R annotation_regions.tsv", source)
+        self.assertIn(
+            "--VariantMap annotation_variant_gene_map.tsv \\",
+            source,
+        )
+        self.assertIn(
+            "File SpliceAcceptorCarriers = "
+            "ExtractLoFCarriers.splice_acceptor_carriers",
+            source,
+        )
+        self.assertIn(
+            "File SpliceDonorCarriers = "
+            "ExtractLoFCarriers.splice_donor_carriers",
+            source,
+        )
+        self.assertIn(
+            'File splice_acceptor_carriers = '
+            '"~{output_prefix}.splice_acceptor_carriers.tsv.gz"',
+            source,
+        )
+        self.assertIn(
+            'File splice_donor_carriers = '
+            '"~{output_prefix}.splice_donor_carriers.tsv.gz"',
+            source,
+        )
+
     def test_hail_lof_workflow_contract(self):
         self.assertEqual(
             HAIL_LOF_MODULE.REQUIRED_LOF_VAT_FIELDS,
@@ -232,6 +262,29 @@ class TranscriptVatContractTests(unittest.TestCase):
             workflow_source,
         )
 
+    def test_hail_lof_workflow_exposes_generalized_outputs(self):
+        source = (ROOT / "workflow" / "HailLoFCarrierTable.wdl").read_text()
+        self.assertIn(
+            'File splice_acceptor_carriers = '
+            'read_string("splice_acceptor_carriers_outpath.txt")',
+            source,
+        )
+        self.assertIn(
+            'File splice_donor_carriers = '
+            'read_string("splice_donor_carriers_outpath.txt")',
+            source,
+        )
+        self.assertIn(
+            "File SpliceAcceptorCarriers = "
+            "ExtractHailLoFCarriers.splice_acceptor_carriers",
+            source,
+        )
+        self.assertIn(
+            "File SpliceDonorCarriers = "
+            "ExtractHailLoFCarriers.splice_donor_carriers",
+            source,
+        )
+
     def test_main_workflow_propagates_lof_vcf_outputs(self):
         source = (ROOT / "main.wdl").read_text()
         self.assertIn(
@@ -244,6 +297,19 @@ class TranscriptVatContractTests(unittest.TestCase):
         )
         self.assertIn(
             "File? LoFVariantsVCFIndex = HailLoFCarriers.LoFVariantsVCFIndex",
+            source,
+        )
+
+    def test_main_workflow_propagates_generalized_carrier_outputs(self):
+        source = (ROOT / "main.wdl").read_text()
+        self.assertIn(
+            "File? SpliceAcceptorCarriers = "
+            "HailLoFCarriers.SpliceAcceptorCarriers",
+            source,
+        )
+        self.assertIn(
+            "File? SpliceDonorCarriers = "
+            "HailLoFCarriers.SpliceDonorCarriers",
             source,
         )
 

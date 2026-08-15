@@ -63,6 +63,8 @@ workflow HailLoFCarrierTable {
         File LoFVariantsVCFIndex = IndexLoFVCF.index
         File LoFCarriersHC = ExtractHailLoFCarriers.lof_carriers_hc
         File LoFCarriersHCOrLC = ExtractHailLoFCarriers.lof_carriers_hc_or_lc
+        File SpliceAcceptorCarriers = ExtractHailLoFCarriers.splice_acceptor_carriers
+        File SpliceDonorCarriers = ExtractHailLoFCarriers.splice_donor_carriers
     }
 }
 
@@ -119,6 +121,8 @@ task ExtractHailLoFCarriers {
         File lof_variants_vcf = read_string("lof_variants_vcf_outpath.txt")
         File lof_carriers_hc = read_string("lof_carriers_hc_outpath.txt")
         File lof_carriers_hc_or_lc = read_string("lof_carriers_hc_or_lc_outpath.txt")
+        File splice_acceptor_carriers = read_string("splice_acceptor_carriers_outpath.txt")
+        File splice_donor_carriers = read_string("splice_donor_carriers_outpath.txt")
     }
 }
 

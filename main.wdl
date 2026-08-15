@@ -159,6 +159,8 @@ workflow FilterMTAndExportToVCF{
         File? LoFVariantsVCFIndex = HailLoFCarriers.LoFVariantsVCFIndex
         File? LoFCarriersHC = HailLoFCarriers.LoFCarriersHC
         File? LoFCarriersHCOrLC = HailLoFCarriers.LoFCarriersHCOrLC
+        File? SpliceAcceptorCarriers = HailLoFCarriers.SpliceAcceptorCarriers
+        File? SpliceDonorCarriers = HailLoFCarriers.SpliceDonorCarriers
     }
 }
 
