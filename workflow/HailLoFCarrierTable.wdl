@@ -3,6 +3,7 @@ version 1.0
 workflow HailLoFCarrierTable {
     input {
         String UriMatrixTable
+        Boolean MatrixTableAlreadyFiltered = false
         File SampleList
         String VATHailTable
         File? BedFile
@@ -29,6 +30,7 @@ workflow HailLoFCarrierTable {
     call ExtractHailLoFCarriers {
         input:
             UriMatrixTable = UriMatrixTable,
+            MatrixTableAlreadyFiltered = MatrixTableAlreadyFiltered,
             SampleList = SampleList,
             VATHailTable = VATHailTable,
             BedFile = BedFile,
@@ -67,6 +69,7 @@ workflow HailLoFCarrierTable {
 task ExtractHailLoFCarriers {
     input {
         String UriMatrixTable
+        Boolean MatrixTableAlreadyFiltered
         File SampleList
         File? BedFile
         String VATHailTable
@@ -89,6 +92,7 @@ task ExtractHailLoFCarriers {
         export SPARK_LOCAL_DIRS=/cromwell_root
 
         python3 /extract_lof_carriers_hail.py ~{if defined(BedFile) then "--BedFile " + BedFile else ""} \
+            ~{if MatrixTableAlreadyFiltered then "--MatrixTableAlreadyFiltered" else ""} \
             --MatrixTable ~{UriMatrixTable} \
             --SampleList ~{SampleList} \
             --VATHailTable ~{VATHailTable} \
