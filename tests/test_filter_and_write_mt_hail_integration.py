@@ -224,6 +224,10 @@ class TranscriptVatHailIntegrationTests(unittest.TestCase):
         mt = hl.utils.range_matrix_table(4, 2)
         mt = mt.annotate_cols(s=hl.str(mt.col_idx)).key_cols_by("s")
         mt = mt.annotate_rows(
+            locus=hl.locus(
+                "chr1", hl.int32(mt.row_idx + 1), reference_genome="GRCh38"
+            ),
+            alleles=["A", "C"],
             annotations=hl.case()
             .when(
                 mt.row_idx == 0,
@@ -272,48 +276,56 @@ class TranscriptVatHailIntegrationTests(unittest.TestCase):
                     )
                 ]
             ),
-            lof_annotations=hl.case()
-            .when(
-                mt.row_idx == 0,
-                [
-                    hl.struct(
-                        annotation_group="lof",
-                        gene_id="ENSG0001",
-                        gene_symbol="GENE1",
-                        annotation_value="HC",
-                        lof_class="HC",
-                    )
-                ],
-            )
-            .when(
-                mt.row_idx == 1,
-                [
-                    hl.struct(
-                        annotation_group="lof",
-                        gene_id="ENSG0001",
-                        gene_symbol="GENE1",
-                        annotation_value="LC",
-                        lof_class="LC",
-                    )
-                ],
-            )
-            .default([]),
             variant_id=hl.str(mt.row_idx),
+        )
+        mt = mt.key_rows_by("locus", "alleles")
+        mt = mt.annotate_rows(
+            lof_annotations=mt.annotations.filter(
+                lambda annotation: annotation.annotation_group == "lof"
+            )
         )
         mt = mt.annotate_entries(GT=hl.call(0, 1))
 
         annotated_mt = self.lof_module._annotate_lof_vcf_fields(
             mt.filter_rows(hl.len(mt.lof_annotations) > 0)
         )
-        rows = annotated_mt.rows().select(
-            "variant_id",
-            "LOF_GENE_ID", "LOF_GENE_SYMBOL", "LOF_CLASS"
-        ).collect()
+        rows = annotated_mt.rows().select("variant_id", "info").collect()
         rows_by_variant = {row.variant_id: row for row in rows}
-        self.assertEqual(rows_by_variant["0"].LOF_GENE_ID, ["ENSG0001"])
-        self.assertEqual(rows_by_variant["0"].LOF_GENE_SYMBOL, ["GENE1"])
-        self.assertEqual(rows_by_variant["0"].LOF_CLASS, ["HC"])
-        self.assertEqual(rows_by_variant["1"].LOF_CLASS, ["LC"])
+        self.assertEqual(rows_by_variant["0"].info.LOF_GENE_ID, ["ENSG0001"])
+        self.assertEqual(rows_by_variant["0"].info.LOF_GENE_SYMBOL, ["GENE1"])
+        self.assertEqual(rows_by_variant["0"].info.LOF_CLASS, ["HC"])
+        self.assertEqual(rows_by_variant["1"].info.LOF_CLASS, ["LC"])
+
+        vcf_output = self.temp_path / "lof_variants.vcf.bgz"
+        hl.export_vcf(annotated_mt, str(vcf_output))
+        with gzip.open(vcf_output, "rt") as input_file:
+            vcf_lines = input_file.read().splitlines()
+
+        info_headers = {
+            line.split("ID=", 1)[1].split(",", 1)[0]
+            for line in vcf_lines
+            if line.startswith("##INFO=<ID=")
+        }
+        self.assertTrue(
+            {"LOF_GENE_ID", "LOF_GENE_SYMBOL", "LOF_CLASS"}.issubset(
+                info_headers
+            )
+        )
+        records_by_position = {
+            fields[1]: {
+                key: value
+                for key, value in (
+                    item.split("=", 1) for item in fields[7].split(";")
+                )
+            }
+            for fields in (
+                line.split("\t") for line in vcf_lines if not line.startswith("#")
+            )
+        }
+        self.assertEqual(records_by_position["1"]["LOF_GENE_ID"], "ENSG0001")
+        self.assertEqual(records_by_position["1"]["LOF_GENE_SYMBOL"], "GENE1")
+        self.assertEqual(records_by_position["1"]["LOF_CLASS"], "HC")
+        self.assertEqual(records_by_position["2"]["LOF_CLASS"], "LC")
 
         entries_ht = mt.explode_rows(mt.annotations).entries()
         entries_ht = entries_ht.filter(

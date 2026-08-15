@@ -201,7 +201,7 @@ pass, and groups with no matches still write header-only outputs.
 |---|---|
 | `UriMatrixTable` | Path to the input Hail matrix table |
 | `SampleList` | TSV file of samples to retain (keyed on `research_id`) |
-| `VATHailTable` | VAT Hail Table containing `vid`, `gene_id`, `gene_symbol`, and `LoF` |
+| `VATHailTable` | VAT Hail Table containing `vid`, `gene_id`, `gene_symbol`, `LoF`, and `consequence` |
 | `OutputBucket` | Cloud bucket path for the output carrier tables |
 | `OutputPrefix` | Filename prefix for the carrier outputs |
 | `CloudTmpdir` | Temporary cloud directory for Spark/Hail intermediate data |

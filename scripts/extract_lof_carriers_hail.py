@@ -225,15 +225,17 @@ def _sorted_distinct(expr):
 
 def _annotate_lof_vcf_fields(mt):
     return mt.annotate_rows(
-        LOF_GENE_ID=_sorted_distinct(
-            mt.lof_annotations.map(lambda annotation: annotation.gene_id)
-        ),
-        LOF_GENE_SYMBOL=_sorted_distinct(
-            mt.lof_annotations.map(lambda annotation: annotation.gene_symbol)
-        ),
-        LOF_CLASS=_sorted_distinct(
-            mt.lof_annotations.map(lambda annotation: annotation.lof_class)
-        ),
+        info=hl.struct(
+            LOF_GENE_ID=_sorted_distinct(
+                mt.lof_annotations.map(lambda annotation: annotation.gene_id)
+            ),
+            LOF_GENE_SYMBOL=_sorted_distinct(
+                mt.lof_annotations.map(lambda annotation: annotation.gene_symbol)
+            ),
+            LOF_CLASS=_sorted_distinct(
+                mt.lof_annotations.map(lambda annotation: annotation.lof_class)
+            ),
+        )
     )
 
 
