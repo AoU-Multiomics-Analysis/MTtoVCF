@@ -253,10 +253,12 @@ def main(args):
     hl.default_reference("GRCh38")
 
     mt = hl.read_matrix_table(args.MatrixTable)
-    samples_ht = hl.import_table(args.SampleList, key="research_id")
     lof_ht = _prepare_lof_variant_gene_table(args.VATHailTable)
 
-    mt = _filter_matrix_table(mt, samples_ht, args)
+    if not args.MatrixTableAlreadyFiltered:
+        samples_ht = hl.import_table(args.SampleList, key="research_id")
+        mt = _filter_matrix_table(mt, samples_ht, args)
+
     mt = mt.annotate_rows(lof_genes=lof_ht[mt.row_key].lof_genes)
     mt = mt.filter_rows(hl.is_defined(mt.lof_genes))
     mt = mt.select_rows("lof_genes").select_cols().select_entries("GT")
@@ -335,6 +337,11 @@ if __name__ == "__main__":
     parser.add_argument("--OutputBucket", required=True, help="Path to output bucket.")
     parser.add_argument("--OutputPrefix", required=True, help="Output prefix.")
     parser.add_argument("--CloudTmpdir", required=True, help="Temporary cloud directory for Spark/Hail.")
+    parser.add_argument(
+        "--MatrixTableAlreadyFiltered",
+        action="store_true",
+        help="Skip sample, BED, and variant QC filters because the input is already filtered.",
+    )
     parser.add_argument(
         "--SparkLocalThreads",
         type=_spark_local_threads,

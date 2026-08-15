@@ -124,7 +124,8 @@ workflow FilterMTAndExportToVCF{
    if (MakeLoFCarriers) {
         call HailLoFCarrierTable.HailLoFCarrierTable as HailLoFCarriers {
             input:
-                UriMatrixTable = UriMatrixTable,
+                UriMatrixTable = filter.FilteredMatrixTable,
+                MatrixTableAlreadyFiltered = true,
                 SampleList = SampleList,
                 BedFile = BedFile,
                 VATHailTable = select_first([VATHailTable]),
@@ -147,6 +148,7 @@ workflow FilterMTAndExportToVCF{
     output {
         File PathVCF = filter.PathVCF
         File? TranscriptAnnotations = filter.TranscriptAnnotations
+        String FilteredRareVariantMatrixTable = filter.FilteredMatrixTable
         File Index = IndexVCF.Index
         File? GenotypeDosage = postprocess.GenotypeDosage
         File? GenotypeDosageIndex = postprocess.GenotypeDosageIndex

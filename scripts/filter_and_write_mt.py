@@ -333,8 +333,15 @@ def main(args):
             ALL_p_value_excess_het = mt_filtered.variant_qc.p_value_excess_het
         )
     )
-    # recalculate AC/AF/AN on new filtered set
-    mt_filtered = mt_filtered.annotate_rows( info = hl.agg.call_stats(mt_filtered.GT, mt_filtered.alleles) )
+    # Reuse the stats calculated by variant_qc rather than running a second
+    # genotype aggregation over the same filtered MatrixTable.
+    mt_filtered = mt_filtered.annotate_rows(
+        info=mt_filtered.info.annotate(
+            AF=mt_filtered.variant_qc.AF,
+            AC=mt_filtered.variant_qc.AC,
+            AN=mt_filtered.variant_qc.AN,
+        )
+    )
 
     # Allele number percentage cutoff
     mt_filtered = mt_filtered.filter_rows(mt_filtered.info.AN >= int(args.AlleleNumberPercentage)/100 * mt_filtered.count_cols() * 2)
@@ -348,59 +355,6 @@ def main(args):
     if annotate_with_vat:
         # Join filtered MT with VAT table for annotations.
         mt_filtered = mt_filtered.annotate_rows(_vat=vat_ht[mt_filtered.row_key])
-
-        filtered_variant_keys = mt_filtered.rows().select()
-        transcript_annotations_ht = _prepare_transcript_annotations(
-            transcript_vat_ht, filtered_variant_keys
-        )
-        transcript_annotations_tsv = _join_cloud_path(
-            args.OutputBucket,
-            f"{args.OutputPrefix}.transcript_annotations.tsv.bgz",
-        )
-        transcript_annotations_ht.export(transcript_annotations_tsv)
-        with open("transcript_annotations_outpath.txt", "w") as output_path_file:
-            output_path_file.write(transcript_annotations_tsv)
-
-    # Create flattened row table for annotation export
-    annotations_ht = mt_filtered.rows()
-
-    annotations_ht = annotations_ht.annotate(
-        chrom = annotations_ht.locus.contig,
-        pos = annotations_ht.locus.position,
-        ref = annotations_ht.alleles[0],
-        alt = annotations_ht.alleles[1]
-    )
-
-    annotation_fields = {
-        # Variant identity
-        'chrom': annotations_ht.chrom,
-        'pos': annotations_ht.pos,
-        'ref': annotations_ht.ref,
-        'alt': annotations_ht.alt,
-    }
-    if annotate_with_vat:
-        annotation_fields['rsid'] = annotations_ht._vat.rsid
-
-    annotation_fields.update({
-        # Cohort allele statistics
-        'AF': hl.min(annotations_ht.info.AF),
-        'AC': hl.min(annotations_ht.info.AC),
-        'AN': annotations_ht.info.AN,
-
-        # Variant QC statistics
-        'ALL_p_value_hwe': annotations_ht.total.ALL_p_value_hwe,
-        'ALL_p_value_excess_het': annotations_ht.total.ALL_p_value_excess_het,
-    })
-    if annotate_with_vat:
-        for field in VAT_ANNOTATION_FIELDS:
-            annotation_fields[field] = getattr(annotations_ht._vat, field)
-
-    # export annotations to tsv
-    annotations_ht = annotations_ht.select(**annotation_fields)
-
-    # Export annotations
-    annotations_tsv = _join_cloud_path(args.OutputBucket, f'{args.OutputPrefix}.annotations.tsv.bgz')
-    annotations_ht.export(annotations_tsv)
 
     info_fields = {
         'ALL_p_value_hwe': mt_filtered.total.ALL_p_value_hwe,
@@ -422,6 +376,60 @@ def main(args):
         mt_filtered = mt_filtered.drop("_vat")
     # get rid of unneeded fields for matrix table save
     mt_filtered = mt_filtered.drop("variant_qc","total")
+
+    filtered_matrix_table_path = _join_cloud_path(
+        args.CloudTmpdir,
+        f"{args.OutputPrefix}.AC{args.MinAlleleCount}-{args.MaxAlleleCount}.filtered_rare_variants.mt",
+    )
+    mt_filtered.write(filtered_matrix_table_path, overwrite=True)
+    mt_filtered = hl.read_matrix_table(filtered_matrix_table_path)
+
+    with open("filtered_matrix_table_outpath.txt", "w") as output_path_file:
+        output_path_file.write(filtered_matrix_table_path)
+
+    if annotate_with_vat:
+        filtered_variant_keys = mt_filtered.rows().select()
+        transcript_annotations_ht = _prepare_transcript_annotations(
+            transcript_vat_ht, filtered_variant_keys
+        )
+        transcript_annotations_tsv = _join_cloud_path(
+            args.OutputBucket,
+            f"{args.OutputPrefix}.transcript_annotations.tsv.bgz",
+        )
+        transcript_annotations_ht.export(transcript_annotations_tsv)
+        with open("transcript_annotations_outpath.txt", "w") as output_path_file:
+            output_path_file.write(transcript_annotations_tsv)
+
+    # Create flattened row table for annotation export from the checkpointed MT.
+    annotations_ht = mt_filtered.rows()
+    annotations_ht = annotations_ht.annotate(
+        chrom=annotations_ht.locus.contig,
+        pos=annotations_ht.locus.position,
+        ref=annotations_ht.alleles[0],
+        alt=annotations_ht.alleles[1],
+    )
+
+    annotation_fields = {
+        "chrom": annotations_ht.chrom,
+        "pos": annotations_ht.pos,
+        "ref": annotations_ht.ref,
+        "alt": annotations_ht.alt,
+        "AF": hl.min(annotations_ht.info.AF),
+        "AC": hl.min(annotations_ht.info.AC),
+        "AN": annotations_ht.info.AN,
+        "ALL_p_value_hwe": annotations_ht.info.ALL_p_value_hwe,
+        "ALL_p_value_excess_het": annotations_ht.info.ALL_p_value_excess_het,
+    }
+    if annotate_with_vat:
+        annotation_fields["rsid"] = annotations_ht.info.rsid
+        for field in VAT_ANNOTATION_FIELDS:
+            annotation_fields[field] = getattr(annotations_ht.info, field)
+
+    annotations_ht = annotations_ht.select(**annotation_fields)
+    annotations_tsv = _join_cloud_path(
+        args.OutputBucket, f"{args.OutputPrefix}.annotations.tsv.bgz"
+    )
+    annotations_ht.export(annotations_tsv)
     
 
     # Directly export to VCF

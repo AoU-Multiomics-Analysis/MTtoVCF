@@ -57,10 +57,27 @@ class TranscriptVatContractTests(unittest.TestCase):
             source,
         )
 
+    def test_filter_workflow_exposes_reusable_filtered_matrix_table(self):
+        source = (ROOT / "workflow" / "FilterMT.wdl").read_text()
+        self.assertIn(
+            "String FilteredMatrixTable = TaskFilterMT.FilteredMatrixTable",
+            source,
+        )
+        self.assertIn(
+            "String FilteredMatrixTable = read_string("
+            "'filtered_matrix_table_outpath.txt'"
+            ")",
+            source,
+        )
+
     def test_main_workflow_propagates_transcript_output(self):
         source = (ROOT / "main.wdl").read_text()
         self.assertIn(
             "File? TranscriptAnnotations = filter.TranscriptAnnotations",
+            source,
+        )
+        self.assertIn(
+            "String FilteredRareVariantMatrixTable = filter.FilteredMatrixTable",
             source,
         )
 
@@ -85,6 +102,29 @@ class TranscriptVatContractTests(unittest.TestCase):
             "File? LoFCarriersHCOrLC = HailLoFCarriers.LoFCarriersHCOrLC",
             source,
         )
+        self.assertIn(
+            "UriMatrixTable = filter.FilteredMatrixTable",
+            source,
+        )
+        self.assertIn("MatrixTableAlreadyFiltered = true", source)
+
+    def test_filter_task_materializes_final_matrix_table_once(self):
+        source = (ROOT / "scripts" / "filter_and_write_mt.py").read_text()
+        self.assertIn(
+            "filtered_matrix_table_path = _join_cloud_path(\n"
+            "        args.CloudTmpdir,",
+            source,
+        )
+        self.assertIn(
+            "mt_filtered.write(filtered_matrix_table_path, overwrite=True)",
+            source,
+        )
+        self.assertIn(
+            "mt_filtered = hl.read_matrix_table(filtered_matrix_table_path)",
+            source,
+        )
+        self.assertIn("filtered_matrix_table_outpath.txt", source)
+        self.assertNotIn("hl.agg.call_stats", source)
 
     def test_lof_carrier_workflow_uses_dedicated_image(self):
         source = (ROOT / "workflow" / "LoFCarrierTable.wdl").read_text()
@@ -108,9 +148,18 @@ class TranscriptVatContractTests(unittest.TestCase):
         ).read_text()
         self.assertIn("--VATHailTable ~{VATHailTable}", workflow_source)
         self.assertIn("/extract_lof_carriers_hail.py", workflow_source)
+        self.assertIn("--MatrixTableAlreadyFiltered", workflow_source)
         self.assertIn(
             'docker: "ghcr.io/aou-multiomics-analysis/mttovcf:" + Branch',
             workflow_source,
+        )
+
+        hail_lof_source = (
+            ROOT / "scripts" / "extract_lof_carriers_hail.py"
+        ).read_text()
+        self.assertIn(
+            "if not args.MatrixTableAlreadyFiltered:",
+            hail_lof_source,
         )
 
     def test_hail_lof_membership_uses_hail_sets(self):
