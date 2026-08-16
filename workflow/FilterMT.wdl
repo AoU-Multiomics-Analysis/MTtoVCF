@@ -1,4 +1,5 @@
 version 1.0
+# MTtoVCF update tag: lean-filtered-matrix-table-20260816
 
 workflow FilterMT {
     input {
@@ -74,6 +75,7 @@ task TaskFilterMT {
     }
 
     command <<<
+        # MTtoVCF update tag: lean-filtered-matrix-table-20260816
         export SPARK_LOCAL_DIRS=/cromwell_root
 
         # writes VCF to bucket path 

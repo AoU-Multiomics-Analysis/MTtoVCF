@@ -86,9 +86,12 @@ Override these values upward when a larger runtime configuration is available.
 The final filtered MatrixTable is materialized once under `CloudTmpdir` using
 the run-specific name
 `<OutputPrefix>.AC<min>-<max>.filtered_rare_variants.mt`. It contains the
-filtered samples, genotypes, and final row annotations and is exposed as the
+filtered sample keys, variant keys, and `GT` calls and is intentionally kept
+lean by omitting the wide VAT annotation payload. It is exposed as the
 `FilteredMatrixTable` output. When `MakeLoFCarriers=true`, the Hail LoF task
 consumes this MatrixTable and skips the sample, BED, and variant QC filters.
+The VAT-enriched annotation TSV and VCF are still generated from the filtered
+in-memory table after the checkpoint is written.
 
 The workflow also writes the following annotation outputs:
 
