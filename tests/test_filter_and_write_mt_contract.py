@@ -116,15 +116,42 @@ class TranscriptVatContractTests(unittest.TestCase):
             source,
         )
         self.assertIn(
-            "mt_filtered.write(filtered_matrix_table_path, overwrite=True)",
-            source,
-        )
-        self.assertIn(
-            "mt_filtered = hl.read_matrix_table(filtered_matrix_table_path)",
+            "filtered_matrix_table.write(filtered_matrix_table_path, overwrite=True)",
             source,
         )
         self.assertIn("filtered_matrix_table_outpath.txt", source)
         self.assertNotIn("hl.agg.call_stats", source)
+
+    def test_filtered_matrix_table_checkpoint_is_lean_and_pre_vat(self):
+        source = (ROOT / "scripts" / "filter_and_write_mt.py").read_text()
+        self.assertIn("filtered_matrix_table = (", source)
+        self.assertIn("mt_filtered.select_rows()", source)
+        self.assertIn(".select_cols()", source)
+        self.assertIn('.select_entries("GT")', source)
+        self.assertIn(
+            "filtered_matrix_table.write(filtered_matrix_table_path, overwrite=True)",
+            source,
+        )
+        checkpoint_write = source.index(
+            "filtered_matrix_table.write(filtered_matrix_table_path, overwrite=True)"
+        )
+        vat_join = source.index(
+            "mt_filtered = mt_filtered.annotate_rows(_vat=vat_ht[mt_filtered.row_key])"
+        )
+        self.assertLess(checkpoint_write, vat_join)
+        self.assertNotIn(
+            "mt_filtered = hl.read_matrix_table(filtered_matrix_table_path)",
+            source,
+        )
+
+    def test_wdl_has_explicit_lean_checkpoint_update_marker(self):
+        marker = (
+            "# MTtoVCF update tag: lean-filtered-matrix-table-20260816"
+        )
+        for path in (ROOT / "main.wdl", ROOT / "workflow" / "FilterMT.wdl"):
+            source = path.read_text()
+            self.assertIn(f"version 1.0\n{marker}", source)
+        self.assertIn(marker, (ROOT / "workflow" / "FilterMT.wdl").read_text())
 
     def test_lof_carrier_workflow_uses_dedicated_image(self):
         source = (ROOT / "workflow" / "LoFCarrierTable.wdl").read_text()

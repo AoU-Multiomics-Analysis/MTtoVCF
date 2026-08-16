@@ -352,6 +352,22 @@ def main(args):
         (hl.min(mt_filtered.info.AC) <= int(args.MaxAlleleCount))
     )
 
+    filtered_matrix_table_path = _join_cloud_path(
+        args.CloudTmpdir,
+        f"{args.OutputPrefix}.AC{args.MinAlleleCount}-{args.MaxAlleleCount}.filtered_rare_variants.mt",
+    )
+    # Keep the reusable checkpoint compact: LoF extraction only needs the
+    # filtered row/column keys and genotype calls, not the wide VAT payload.
+    filtered_matrix_table = (
+        mt_filtered.select_rows()
+        .select_cols()
+        .select_entries("GT")
+    )
+    filtered_matrix_table.write(filtered_matrix_table_path, overwrite=True)
+
+    with open("filtered_matrix_table_outpath.txt", "w") as output_path_file:
+        output_path_file.write(filtered_matrix_table_path)
+
     if annotate_with_vat:
         # Join filtered MT with VAT table for annotations.
         mt_filtered = mt_filtered.annotate_rows(_vat=vat_ht[mt_filtered.row_key])
@@ -376,16 +392,6 @@ def main(args):
         mt_filtered = mt_filtered.drop("_vat")
     # get rid of unneeded fields for matrix table save
     mt_filtered = mt_filtered.drop("variant_qc","total")
-
-    filtered_matrix_table_path = _join_cloud_path(
-        args.CloudTmpdir,
-        f"{args.OutputPrefix}.AC{args.MinAlleleCount}-{args.MaxAlleleCount}.filtered_rare_variants.mt",
-    )
-    mt_filtered.write(filtered_matrix_table_path, overwrite=True)
-    mt_filtered = hl.read_matrix_table(filtered_matrix_table_path)
-
-    with open("filtered_matrix_table_outpath.txt", "w") as output_path_file:
-        output_path_file.write(filtered_matrix_table_path)
 
     if annotate_with_vat:
         filtered_variant_keys = mt_filtered.rows().select()
